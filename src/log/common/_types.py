@@ -1,0 +1,3 @@
+"""
+    Data Structures for logging
+"""
