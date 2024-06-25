@@ -31,6 +31,7 @@ Need to be able to query by Module & by Iteration (or both),
 Use Cases;
     Single experiment run, single layers across intervals of n (need to assure each Iteration has the same Stats) so the plots make sense
     Single iteration run, across all layers, (need to assure each module has the same Stats)
+    Querying by module type..
 - 
 
 Log:
