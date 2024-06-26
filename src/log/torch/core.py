@@ -88,7 +88,7 @@ class Stash:
         return _value(self.value)
 
 
-StashpytorFn = Callable[[Event], Stash]
+StashFn = Callable[[Event], Stash]
 StashValueFn = Callable[[Tensor], Any]
 
 
