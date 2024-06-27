@@ -1,3 +1,6 @@
+<!-- Look into this! -->
+https://typedframe.readthedocs.io/en/latest/
+
 ## Tensors Stats
     Activations (Input to forward pass for each nn.Module)
     Gradients 
