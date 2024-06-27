@@ -1,13 +1,9 @@
-# What to log and how to log it
-Currently focusing on torch.nn.Modules, not currently including torch.nn.functional 
-
-Initially going to log data locally -> then explore wandb integration.
-
 ## Tensors Stats
     Activations (Input to forward pass for each nn.Module)
     Gradients 
     Weights (inbetween each optimiser step)
     Optimiser State ()
+    Log Shape
 
 ## Static Hyper Parameters
 Model Config
@@ -15,7 +11,7 @@ Model Config
 ## Dynamic Hyper Parameters
 W.r.t. (Parameter Group, Iteration)
     Learning Rate
-    Weight Decay
+    Weight Decay 
 
 ## Training Stats
 W.r.t Iteration:
