@@ -1,5 +1,4 @@
 .venv
 test-data/*
 .vscode
-
-__pycache__/*
+*.pyc
