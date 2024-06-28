@@ -1,2 +1,5 @@
 .venv
 test-data/*
+.vscode
+
+__pycache__/*

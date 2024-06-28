@@ -86,7 +86,10 @@ class LogFrame(_BaseFrame):
 
 class MasterView(_BaseFrame):
     """
-        Something which can be plotted
+        A view of 
+        index: layer-name
+        column: n_{it}
+
     """
     _schema: Dict[str, Any] = {}
 
