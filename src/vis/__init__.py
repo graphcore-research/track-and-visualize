@@ -1,2 +1,2 @@
-from ._plots import global_view
-__all__ = ['global_view']
+from ._plots import mv_heatmap
+__all__ = ['mv_heatmap']
