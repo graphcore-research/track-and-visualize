@@ -3,3 +3,4 @@ matplotlib
 numpy < 2
 pandas
 seaborn
+pytest

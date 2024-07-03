@@ -1,8 +1,8 @@
 import matplotlib.pyplot as _plt
 import seaborn as _sns
 
-from src.transform import _flatten_multi_index  # type: ignore
-from ..log.common import MasterView, LogFrame, TensorType
+from src._transform import _flatten_multi_index  # type: ignore
+from ..log.common import LogFrame, TensorType
 from ..log.common import _q
 from typing import Tuple, Optional
 
@@ -11,10 +11,7 @@ def _get_fig():
     ...
 
 
-def mv_heatmap(mv: MasterView, 
-               title: Optional[str] = None,
-               figsize: Tuple[int, int] = (20, 10)):
-    """
+"""
     Generates a heatmap of some scalar metric (w.r.t to the chosen Tensor \
         Type) for each layer.
         Y-axis:  Layer Name
@@ -30,20 +27,24 @@ def mv_heatmap(mv: MasterView,
 
     Returns:
         Figure: A Heatmap of the provided MasterView
-    """
-    with _plt.ioff():
-        fig, axs = _plt.subplots(ncols=1, nrows=1, figsize=figsize)
-        _sns.heatmap(mv._df, square=False, ax=axs)
-        if title:
-            fig.suptitle(title)
-        else:
-            fig.suptitle(f'{mv.tt.name} - {mv.metric}')
+"""
 
-        return fig
+# def mv_heatmap(mv: MasterView, 
+#                title: Optional[str] = None,
+#                figsize: Tuple[int, int] = (20, 10)):
+#     with _plt.ioff():
+#         fig, axs = _plt.subplots(ncols=1, nrows=1, figsize=figsize)
+#         _sns.heatmap(mv._df, square=False, ax=axs)
+#         if title:
+#             fig.suptitle(title)
+#         else:
+#             fig.suptitle(f'{mv.tt.name} - {mv.metric}')
+
+#         return fig
     
 
 def alt_global_view(
-        lf: LogFrame,
+        df: LogFrame,
         tt: TensorType,
         inc: int,  # Only makes sense if x = step (or equivalent)
         scalar_metric: str,
