@@ -56,3 +56,4 @@ def to_master_view(
         values=scalar_metric),
         tt=tt,
         metric=scalar_metric)
+

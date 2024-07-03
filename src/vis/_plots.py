@@ -1,6 +1,9 @@
 import matplotlib.pyplot as _plt
-import seaborn as _sns  # type: ignore
-from ..log.common import MasterView
+import seaborn as _sns
+
+from src.transform import _flatten_multi_index  # type: ignore
+from ..log.common import MasterView, LogFrame, TensorType
+from ..log.common import _q
 from typing import Tuple, Optional
 
 
@@ -37,3 +40,28 @@ def mv_heatmap(mv: MasterView,
             fig.suptitle(f'{mv.tt.name} - {mv.metric}')
 
         return fig
+    
+
+def alt_global_view(
+        lf: LogFrame,
+        tt: TensorType,
+        inc: int,  # Only makes sense if x = step (or equivalent)
+        scalar_metric: str,
+        x=_q.IT,
+        y=_q.NAME, **kwargs):
+
+    df = lf._df.query(
+        f'@lf._df.metadata.grad == "{tt.name}" & \
+            @lf._df.metadata.step % {inc} == 0')
+
+    df = df[[x, y, _q.SCA(scalar_metric)]]
+
+    df = _flatten_multi_index(df=df)
+
+    return _sns.heatmap(
+        data=df.pivot(
+            index=_q.NAME[1],
+            columns=_q.IT[1],
+            values=scalar_metric),
+            **kwargs)
+
