@@ -68,7 +68,6 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
 
         if t_col in tmp_wcs.keys():
             map_key = map_wcs[t_col]
-
             if _check_dtype(col, map_key):
                 # dtype matches -> make sure it doesn't break WC Constraints
                 wcs[map_key].count += 1
@@ -88,8 +87,8 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
             matched_keys.append(col)
             
         # Check Wildcard Match
-        elif _check_wildcard:
-            counter += 1
+        elif _check_wildcard(col):
+            schema_match = True
 
         # no match
         else: 
@@ -102,7 +101,10 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
 
     
     # if all columns don't pass validation, Raise Schema Exception
+
+
     if counter != len(df.columns):
+        print(counter)
         raise SchemaException
 
     # Make sure WildCards match  
@@ -110,6 +112,7 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
         if value.count >= key[1].max or value.count < key[1].min:
             raise SchemaException
     
+
     
 
     df.attrs['vis-meta'] = {
