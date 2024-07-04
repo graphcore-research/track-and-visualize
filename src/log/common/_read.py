@@ -1,33 +1,15 @@
+from typing import Any, Callable, Hashable, Iterable, Literal, Mapping, Sequence
+
+import csv
+from pandas._libs import lib
+
 import pandas as _pd
 from pandas._typing import (
     CompressionOptions, ReadPickleBuffer, FilePath, StorageOptions, 
     ReadBuffer, DtypeBackend,IndexLabel, UsecolsArgType, ReadCsvBuffer, 
     DtypeArg, CSVEngine)
-from pandas._libs import lib
-from typing import Any, Callable, Hashable, Iterable, Literal, Mapping, Sequence
-import csv
 
-import _q
-import _types
-
-def _dataframe_migration(df: _pd.DataFrame, schema_map: Any) -> _pd.DataFrame:
-    """
-        Takes an arbitrary dataframe of logs and a schema-map and returns a DataFrame where values are stored under the appropriate metadata.
-    """
-
-    return df
-
-def _validate_schema(df: _pd.DataFrame) -> _pd.DataFrame:
-    """
-        Valideates DF w.r.t. LF schema and adds a flag to DF if successful, else it raises a schema error
-    """
-    
-    _types.LogFrame.schema[_types.LogFrame._toplevels[0]] # metadata
-    _types.LogFrame.schema[_types.LogFrame._toplevels[1]] # s_stats
-    _types.LogFrame.schema[_types.LogFrame._toplevels[2]] # exp_counts 
-
-    return df
-
+from ._utils import _validate_schema, _dataframe_migration
 
 def read_pickle(
         filepath_or_buffer: FilePath | ReadPickleBuffer,

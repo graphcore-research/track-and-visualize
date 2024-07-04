@@ -1,9 +1,12 @@
 import matplotlib.pyplot as _plt
 import seaborn as _sns
 
+import pandas as _pd
+
 from src._transform import _flatten_multi_index  # type: ignore
-from ..log.common import LogFrame, TensorType
+from ..log.common import TensorType
 from ..log.common import _q
+from src.log.common._utils import _validate_df_hash
 from typing import Tuple, Optional
 
 
@@ -44,16 +47,18 @@ def _get_fig():
     
 
 def alt_global_view(
-        df: LogFrame,
+        df: _pd.DataFrame,
         tt: TensorType,
         inc: int,  # Only makes sense if x = step (or equivalent)
         scalar_metric: str,
         x=_q.IT,
         y=_q.NAME, **kwargs):
+    
+    _validate_df_hash(df)
 
-    df = lf._df.query(
-        f'@lf._df.metadata.grad == "{tt.name}" & \
-            @lf._df.metadata.step % {inc} == 0')
+    df = df.query(
+        f'@df.metadata.grad == "{tt.name}" & \
+            @df.metadata.step % {inc} == 0')
 
     df = df[[x, y, _q.SCA(scalar_metric)]]
 

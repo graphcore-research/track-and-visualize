@@ -85,6 +85,7 @@ class LogFrame:
         }
     """
     _toplevels = ('metadata','scalar_stats','exponent_count')
+    # Use Optional for a column whether the column is optional?
     schema: Dict[str, Dict[Any,Any]] = {
         _toplevels[0] : {
             'name': str,
