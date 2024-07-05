@@ -1,2 +1,2 @@
-from ._plots import alt_global_view
-__all__ = ['alt_global_view']
+from ._plots import scalar_global_heatmap, scalar_line
+__all__ = ['scalar_global_heatmap', 'scalar_line']

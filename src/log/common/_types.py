@@ -92,7 +92,7 @@ class LogFrame:
             'type' : str,
             'grad' : Union[str,TensorType],
             'step': int,
-            # 'dtype': Any,
+            'dtype': str,
             # 'dim' : Any
         },
         _toplevels[1]  : {

@@ -4,3 +4,4 @@ numpy < 2
 pandas
 seaborn
 pytest
+ml_dtypes
