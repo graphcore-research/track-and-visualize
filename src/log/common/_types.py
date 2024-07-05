@@ -18,7 +18,7 @@ class WildCard:
         return '*'
 
 class WCAL1(WildCard):
-    min: int =  0
+    min: int =  1
     max: int = 2**32
 
 @dataclass

@@ -4,6 +4,7 @@ from typing import Any
 from ._errors import SchemaException
 from . import _types
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_float_dtype, is_dtype_equal
+import sys
 def _dataframe_migration(df: pd.DataFrame, schema_map: Any) -> pd.DataFrame:
     """
         Takes an arbitrary dataframe of logs and a schema-map and returns a DataFrame where values are stored under the appropriate metadata.
@@ -23,7 +24,7 @@ def _validate_df_hash(df: pd.DataFrame):
 
 
 
-def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
+def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame, debug=False):
     
     import typing
     # get lf schema as Dict[tuple(tl_col, col) : type]
@@ -104,17 +105,17 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame):
 
 
     if counter != len(df.columns):
-        print(counter)
-        raise SchemaException
+        raise SchemaException(f"The following columns did not match the schema: {','.join(un_matched_cols)}")
 
     # Make sure WildCards match  
     for key, value in wcs.items():
-        if value.count >= key[1].max or value.count < key[1].min:
-            raise SchemaException
-    
+        if value.count > key[1].max or value.count < key[1].min:
+            raise SchemaException(f'{key[0]}, wild card column count: {value.count}, is not in required range ({key[1].min} - {key[1].max})')
+        
+    if len(matched_keys) != len(schema.keys()):
+        raise SchemaException(f"Missing Required Columns: {','.join([str(key) for key in list(schema.keys()) if key not in matched_keys])}")
 
-    
-
+        
     df.attrs['vis-meta'] = {
         'hash': _get_df_schema_hash(df)}
     return df
