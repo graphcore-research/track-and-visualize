@@ -47,7 +47,7 @@ def _base2_format(l,value, tick_number):
     if value == float('inf') or value == -float('inf'):
         return value
     # slightly hacky here as having an issue with double '{{}}' using f-string
-    return r"$2^{{0}}$".replace('{0}',str(value))
+    return f"$2^{{{value}}}$"
 
 def _getformatter(list) -> Callable:
     return partial(_base2_format, list)
@@ -292,8 +292,11 @@ def exp_hist(
         dtype_annotation: Union[bool, str, List[str]]= True,
         col_wrap: int = None,
         figsize: Tuple[int,int] = (10,10),
+        xtick_labelsize: int = None,
         fig_title: str = None,
         facet_kws: Dict = None,
+        sp_kws: Dict = None,
+        legend_kws: Dict = None,
         **kwargs):
     """
     Bar Plot, Line Plot or resampled kde plot (based on resampling from histogram) of a Tensor type or (types: facted plot) of a single layer or (set of layers: facted plot), for a single training step.
@@ -315,7 +318,9 @@ def exp_hist(
          col_wrap (int | None): if faceting on tt or scalar metric set max-col width before wrapping
          figsize (Tuple[int,int]): size of the figure
          fig_title (str): Custom title of the figure, on faceted plots this equates to the overall figure title as sub plot titles are autopopulated.
-         facet_kws (Dict): Arguements for sns.FacetGrad
+         facet_kws (Dict): Arguments for sns.FacetGrad
+         sp_kws (Dict): **kwargs for plt.plot, plt.bar or sns.kdeplot (depending on value chosen for 'kind')
+         legend_kws (Dict): **kwargs for FacetGrid.add_legend (if faceting) or plt.legend if not
          **kwargs: tbd
 
          One of tt or scalar_metric must be a single value.
@@ -332,6 +337,14 @@ def exp_hist(
     
     if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
         raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
+    
+    # initialising kws if not provided
+    if sp_kws == None: sp_kws = dict()
+    if legend_kws == None: legend_kws = dict(fontsize=10,loc='upper right')
+    if facet_kws == None: facet_kws = dict(legend_out=False)
+
+    
+
     facet_dtypes = None
     # Internal Functions ...
     def _facet_plot_wrapper(*args,**kwargs):
@@ -346,7 +359,7 @@ def exp_hist(
 
 
     def _plot_single(df_, ax):
-        # convert to long format & sort ascending
+        # normalize, convert to long format & sort ascending
         _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
         # make string for categorical plot
         x = _df.Exponent.astype(str).tolist()
@@ -355,13 +368,15 @@ def exp_hist(
             plt.bar(
             x=x,
             height=_df.value,
-            align='edge' # default
+            align='edge', # default
+            **sp_kws
             )
         elif kind == 'line':
             # plot line
             plt.plot(
                 x,
                 _df.value,
+                **sp_kws
             )
 
         elif kind == 'kde':
@@ -370,14 +385,16 @@ def exp_hist(
         # Only do this for non-facet plots
         if ax != None:
             ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
-            ax.xaxis.set_tick_params(labelsize=7)
+            if xtick_labelsize:
+                ax.xaxis.set_tick_params(labelsize=xtick_labelsize)
+            # Draw dtype annotations
             if dtype_annotation:
                 _annotate_nf_details(
                     ax=ax,
                     x_values=x,
                     fp_dtype=df_.metadata.dtype.item() if type(dtype_annotation) == bool else dtype_annotation)
                 # legend location -> outter fn argument?
-                plt.legend(loc='upper right')
+                plt.legend(**legend_kws)
 
 
     _validate_df_hash(df)
@@ -388,10 +405,6 @@ def exp_hist(
 
 
     if facet:
-        if facet_kws == None:
-            facet_kws = {
-                "legend_out": False
-            }
 
         g = sns.FacetGrid(
             df,
@@ -413,7 +426,8 @@ def exp_hist(
         all_leg_handles = {}
         for ind,ax in enumerate(g.axes.flat):
             ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(l)))
-            ax.xaxis.set_tick_params(labelsize=7)
+            if xtick_labelsize:
+                ax.xaxis.set_tick_params(labelsize=xtick_labelsize)
 
 
             # if metadata dtype is being plotted, different dtypes will use the same colour, need to fix this
@@ -432,9 +446,10 @@ def exp_hist(
                         all_leg_handles[hk] = ha
 
 
-        # Add the legend - Want to overlap this some how..
-        g.add_legend(legend_data=all_leg_handles,fontsize=10)
-        g.tight_layout()
+        # Add the legend - Want to overlap this some how.
+        if dtype_annotation:
+            g.add_legend(legend_data=all_leg_handles,**legend_kws)
+        # g.tight_layout()
         g.set_titles("{col_var[1]} = '{col_name}'")
         
         # Overall Plot title
@@ -442,7 +457,8 @@ def exp_hist(
             g.figure.suptitle(fig_title)
         return g
     
-    # No faceting -> Single plot
+    # No faceting -> Single plot 
+    # Could just use facet grid for everything?
     else:
         # create figure
         fig, ax = plt.subplots(figsize=figsize)
@@ -455,7 +471,7 @@ def exp_hist(
         else:
             fig.suptitle(f'Name = "{layer}"')
 
-        fig.tight_layout()
+        # fig.tight_layout()
 
         
         return fig
