@@ -2,3 +2,4 @@
 test-data/*
 .vscode
 *.pyc
+*.pkl
