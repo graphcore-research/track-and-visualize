@@ -16,5 +16,6 @@ NAME = ('metadata', 'name')
 LTYPE = ('metadata', 'type')
 TTYPE = ('metadata', 'grad')
 IT = ('metadata', 'step')
+DT = ('metadata', 'dtype')
 SCA = _scalar
 EXP = _exp

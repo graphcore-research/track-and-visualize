@@ -1,2 +1,2 @@
-from ._plots import scalar_global_heatmap, scalar_line
-__all__ = ['scalar_global_heatmap', 'scalar_line']
+from ._plots import scalar_global_heatmap, scalar_line,exp_hist
+__all__ = ['scalar_global_heatmap', 'scalar_line', 'exp_hist']
