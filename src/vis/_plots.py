@@ -1,4 +1,7 @@
+from functools import partial
 import matplotlib.pyplot as plt
+import ml_dtypes
+import numpy as np
 import seaborn as sns
 import pandas as pd
 
@@ -7,36 +10,81 @@ from ..log.common import TensorType
 from ..log.common import _q
 from ._errors import FacetException
 from src.log.common._utils import _validate_df_hash
-from typing import List, Tuple, Optional, Union, Pattern
+from typing import Any, Callable, Dict, List, Literal, Tuple, Optional, Union, Pattern
 
 
 def _get_fig():
     ...
 
 
-"""
-    Generates a heatmap of some scalar metric (w.r.t to the chosen Tensor \
-        Type) for each layer.
-        Y-axis:  Layer Name
-        X-axis:  Time Step
-
-
-    Args:
-        mv (MasterView): the MV you wish to visualise
-        title (str): Optional Plot title, 
-        inc (int): the increment between training iterations to include
-        figsize (Tuple[int, int]): Tuple of width, height for the size you \
-              want the plot to be
-
-    Returns:
-        Figure: A Heatmap of the provided MasterView
-"""
-
-
 class _PlotPrepper:
     def __init__(self, df):
         _validate_df_hash(df)
         self.df = df
+
+
+
+def _base2_format(l,value, tick_number):
+    # the categorical case
+    if type(value) == int:
+        value = l[tick_number]
+        if value == float('inf') or value == -float('inf'):
+            return value
+        # slightly hacky here as having an issue with double '{{}}' using f-string
+        return f"$2^{{{value}}}$"
+    # ... continuous x-axis
+    else:
+        if value <= l[0]:
+            return -float('inf')
+        elif value >= l[-1]:
+            return float('inf')
+        return f"$2^{{{int(np.log2(value))}}}$"
+
+
+def _getformatter(list) -> Callable:
+    return partial(_base2_format, list)
+
+def _gen_facet_query(layer, tt, df) -> Tuple[Any, str]:
+    """
+        fn for generating df query for faceting across TensorType or Layername.
+
+
+        Args:
+            layer
+            tt
+            df
+
+        Returns:
+            (facet (Union[COLUMN,None]),query (str)) : (which column to facet on, df query string)
+    """
+    facet = None
+    # Logic for faceting by layer
+    if type(layer) == list:
+        lq = f' in {layer}'
+        facet = _q.NAME
+    elif isinstance(layer,Pattern):
+        lq = f'.str.match("{layer.pattern}")'
+        facet = _q.NAME
+    # single layer
+    else:
+        lq = f' == "{layer}"'
+
+    # logic for faceting by Tensor
+    if type(tt) == list:
+        # convert List[TT] to list string and format for query
+        tq = f' in {[t.name for t in tt]}'
+        facet = _q.TTYPE
+    elif tt == None:
+        # Retrieve the set of unique TT's in DF and format query (this is rendudant)
+        tq = f' in {[t.name for t in df.metadata.grad.unique()]}'
+        facet = _q.TTYPE
+    elif type(tt) == TensorType:
+        tq =  f' == "{tt.name}"'
+
+    query = f'@df.metadata.name{lq} & @df.metadata.grad{tq}'
+
+    return facet, query
+
     
 
 def scalar_global_heatmap(
@@ -98,8 +146,6 @@ def scalar_global_heatmap(
 
     return fig
 
-
-
 def scalar_line(
         df: pd.DataFrame,
         layer: Union[str, List[str], Pattern],
@@ -108,7 +154,7 @@ def scalar_line(
         x=_q.IT,
         col_wrap: int = None,
         kind='line',
-        facet_kws = {'sharey': True, 'sharex': True},
+        facet_kws: Dict[Any,Any] = None,
         **kwargs 
     ):
     """
@@ -125,7 +171,7 @@ def scalar_line(
          col_wrap (int | None): if faceting on tt or scalar metric set max-col width before wrapping
          kind: (str): Typle of plot to display accepts args "line" or "scatter"
          facet_kws (Dict): Arguements for sns.FacetGrad, if faceting on TensorType,  sharey is automatically set to False (as grads and activations typically on very different scales)
-         **kwargs: all kwargs from sns.relplot (if faceting) or sns.lineplot/sns.scatterplot if
+         **kwargs: all kwargs from `sns.relplot` (if faceting) or `sns.lineplot` (if not faceting & kind='line') | `sns.scatterplot` (if not faceting & kind='scatter')
 
          One of tt or scalar_metric must be a single value.
        
@@ -136,49 +182,30 @@ def scalar_line(
     """
 
     if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
-        FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
+        raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
 
     _validate_df_hash(df)
 
-    facet = None
-    # Logic for faceting by layer
-    if type(layer) == list:
-        lq = f' in {layer}'
-        facet = _q.NAME
-    elif isinstance(layer,Pattern):
-        lq = f'.str.match("{layer.pattern}")'
-        facet = _q.NAME
-    # single layer
-    else:
-        lq = f' == "{layer}"'
-
-    # logic for faceting by Tensor
-    if type(tt) == list:
-        # convert List[TT] to list string and format for query
-        tq = f' in {[t.name for t in tt]}'
-        facet = _q.TTYPE
-    elif tt == None:
-        # Retrieve the set of unique TT's in DF and format query (this is rendudant)
-        tq = f' in {[t.name for t in df.metadata.grad.unique()]}'
-        facet = _q.TTYPE
-    elif type(tt) == TensorType:
-        tq =  f' == "{tt.name}"'
-
-    df = df.query(
-        f'@df.metadata.name{lq} & @df.metadata.grad{tq}')
+    # Filter rows in DF to those of interest
+    facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
+    df = df.query(query)
     
-    
+    # handling scalar metric input -> should check that the provided metric is in the DF?
     scalar_metric = [scalar_metric] if type(scalar_metric) == str else scalar_metric
     scalar_metric = list(df.general_stats.columns) if scalar_metric == None else scalar_metric
 
+    # columns to use from the provided DF
     cols = [x] if facet == None else [x,facet]
     cols.extend([_q.SCA(sm) for sm in scalar_metric])
-    
     df = df[cols]
+
+    # Removing multi-index
     _df = _flatten_multi_index(df)
 
 
     if facet:
+        if facet_kws == None:
+            facet_kws = {'sharey': True, 'sharex': True}
 
         fig = sns.relplot(
             pd.melt(_df,[x[1], facet[1]]).rename(columns={"variable" : "Metric"}),
@@ -192,9 +219,10 @@ def scalar_line(
             **kwargs
         )
     else:
+        plot_df = pd.melt(_df,[x[1]]).rename(columns={"variable" : "Metric"}) 
         if kind == 'line':
             fig = sns.lineplot(
-                pd.melt(_df,[x[1]]).rename(columns={"variable" : "Metric"}),
+                plot_df,
                 x=x[1], 
                 y='value', 
                 hue='Metric',
@@ -202,7 +230,7 @@ def scalar_line(
             )
         elif kind == 'scatter':
             fig = sns.scatterplot(
-                pd.melt(_df,[x[1]]).rename(columns={"variable" : "Metric"}),
+                plot_df,
                 x=x[1], 
                 y='value', 
                 hue='Metric',
@@ -215,9 +243,316 @@ def scalar_line(
     return fig
 
 
+def _annotate_nf_details(
+        ax: plt.Axes, 
+        x_values: List[str], 
+        fp_dtype: Union[str,List[str]], 
+        dtype_info: Tuple[bool,bool,bool], 
+        color_map: List[str] = None, 
+        logged_dtypes: List[str] = None):
+    """
+        This implementation is based on using categorical values for the x-axis, which is not the case in a kdeplot
 
-# HistoGram Plots
+        !Need to keep track of dtype for faceting (i.e. gradients logged in e5m2, activations e4m3)
+    """
+    offset = 0
+    # will either be a list of strings or a np array
+
+    if logged_dtypes and len(logged_dtypes) > 1:
+        offset = logged_dtypes.index(fp_dtype)
+
+    # if single value is passed in, wrap in list so branch in logic
+    if type(fp_dtype) == str:
+        fp_dtype = [fp_dtype]
+
+
+
+
+    # just a quick soln for having different annotation colours
+    if color_map == None:
+        color_map = plt.colormaps.get_cmap('Set1').resampled(len(fp_dtype) + offset).colors
+
+    # need some logic for changing colour for different ftypes..
+    for fpdt,color in zip(fp_dtype,color_map[offset:]):
+        # parse dtype
+        fp_info = ml_dtypes.finfo(fpdt)
+        line_styles = (
+        (x_values.index(str(fp_info.maxexp)) if type(x_values) == list else fp_info.max,'-', f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",),
+        (x_values.index(str(np.log2(fp_info.smallest_normal))) if type(x_values) == list else fp_info.smallest_normal,'--', f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)"),
+        (x_values.index(str(np.log2(fp_info.smallest_subnormal))) if type(x_values) == list else fp_info.smallest_subnormal,':', f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)")
+        )
+
+        for ls,d_if in zip(line_styles,dtype_info):
+
+            if d_if:
+                ax.axvline(
+                    ls[0], 
+                    ls=ls[1],
+                    color=color,
+                    alpha=1, 
+                    label=ls[2])
+                
+    return ax
+
+
+def _swap_infities(ed):
+    """
+        As x-axis is not categorical (like in bar & line plot) infinities break the plot. 
+        Therefore they are swapped out for 2^{max_exp +1} / 2^{min_exp -1} for the data being plotted.
+        The axis tickets are the original hist edges.
+    """
+    ed_copy = np.copy(ed)
+    ed_copy[0] = ed[1] -1 # make -inf the min non inf exponent -1
+    ed_copy[-1] = ed[-2] + 1 # make inf into max non inf exponent +1
+    return ed_copy
+
+def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) -> np.ndarray:
+    """
+        Need underlying data for kde plot, slightly hacky way of generating an approximation of it.
+        Will refine this in due course.. 
+    """
+    e.sort() # to ensure that it is -inf ... inf,
+    e2 = _swap_infities(e) 
+    # this formula isn't exactly correct ... but will do for now 
+    act = np.array([2**exp for exp in e2],dtype='float64')
+    # iterate over each 2^e value and sample from a normal distribution with mean (2^n + 2^n/2 and std 2^n/4)
+    empty = []
+    for e_,h_ in zip(act,h):
+        empty.append(np.random.normal(e_ + e_ / 2 , scale = e_ / 4,  size=int(n*h_)))
+
+    return np.concatenate(empty), act
+
+# HistoGram Plots - BarPlot
+def exp_hist(
+        df: pd.DataFrame,
+        layer: Union[str, List[str], Pattern],
+        tt: Union[TensorType, List[TensorType], None],
+        step: int,
+        kind: Literal['bar','line','kde'] = 'bar',
+        dtype_annotation: Union[bool, str, List[str]]= True,
+        dtype_info: Tuple[bool,bool,bool] = (True,True,False), # Will figure out a way to make this slightly nicer!
+        col_wrap: int = None,
+        figsize: Tuple[int,int] = (10,10),
+        xtick_labelsize: int = 12,
+        xtick_rotation: int = 45, # can I make these kwargs will defaults??
+        fig_title: str = None,
+        facet_kws: Dict = None,
+        sp_kws: Dict = None,
+        legend_kws: Dict = None,
+        **kwargs):
+    """
+    Bar Plot, Line Plot or resampled kde plot (based on resampling from histogram) of a Tensor type or (types: facted plot) of a single layer or (set of layers: facted plot), for a single training step.
+
+    Always uses log2 for x-axis.
+    One of tt or layer_name must be a single value.
+
+    Args:
+         df (pd.DataFrame): the logs for the entire training run
+         layer (str | List[str] | Pattern): a str (single layer), set of str or a compiled regex of a set of names to plot (each layer is a facet)
+         tt (TensorType | List[TensorType] | None): the type of tensor for the view to include (if None plots a facet of all tensor types)
+         step (int): the training step you wish to plot
+         kind: (Literal['bar','line','kde']): Typle of plot to display accepts args "bar", "line" or "kde", kde is a resampled kde (from the exponent counts histogram)
+         dtype_annotation (Union[bool, str, List[str]]): 
+            False: No Annotations
+            True: will draw numerical format annotations for the dtype logged as metadata
+            str: provide the string of that dtype you wish to annotate e.g. `'float8_e4m3fn'`
+            List[str]: provide a list of strings of the dtypes you wish to annotate, e.g. `['float8_e4m3fn', 'float8_e5m2]`
+         dtype_info (Tuple[bool,bool,bool]): 
+            Which dtype info to annotate (Max Representable Value, Smallest Normal, Smallest Subnormal), defaults to MRV & SN
+         col_wrap (int | None): if faceting on tt or scalar metric set max-col width before wrapping
+         figsize (Tuple[int,int]): size of the figure
+         xtick_labelsize (int) : size of x-axis tick labels 
+         xtick_rotation (int) : rotation of x-axis tick labels
+         fig_title (str): Custom title of the figure, on faceted plots this equates to the overall figure title as sub plot titles are autopopulated.
+         facet_kws (Dict): Arguments for `sns.FacetGrad`
+         sp_kws (Dict): **kwargs for `plt.plot`, `plt.bar` or `sns.kdeplot` (depending on value chosen for 'kind')
+                        in the case of sns.kdeplot n=int (> 10000) is required for resampling from histogram.
+         legend_kws (Dict): **kwargs for `FacetGrid.add_legend` (if faceting) or `plt.legend` if not
+         **kwargs: tbd
+
+         One of tt or scalar_metric must be a single value.
+       
+
+     Returns:
+         Figure
+
+
+    TO-DO, facet on step (), col == step, (row == tt or layer)
+
+    """
+    
+    
+    if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
+        raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
+    
+    # initialising kws if not provided
+    if sp_kws == None: sp_kws = dict() if kind != 'kde' else dict(n=10000,log_scale=2, bw_adjust=4, fill=True) # sub kde also use sp_kws or be a seperate arg??
+    # if sp_kws & kde need to assert n is in dict, as it will throw a key error when pop is called?
+    if legend_kws == None: legend_kws = dict(fontsize=10,loc='upper right')
+    if facet_kws == None: facet_kws = dict(legend_out=False)
+
+    
+    facet_dtypes = None # used for annotations...
+    kde_facet_ax_ticks = [] # used for setting x axis ticks in kde plots
+    # Internal Functions ...
+    def _facet_plot_wrapper(*args,**kwargs):
+        nonlocal facet_dtypes # Set scope to outer fn scope
+        # store dtype for this facet
+        if facet_dtypes == None:
+            facet_dtypes = [kwargs['data'].metadata.dtype.item()]
+        else:
+            facet_dtypes.append(kwargs['data'].metadata.dtype.item())
+
+        _plot_single(df_ = kwargs['data'], ax= None)
+
+
+    def _plot_single(df_, ax):
+        # normalize, convert to long format & sort ascending
+        _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
+        # make string for categorical plot
+        x = _df.Exponent.astype(str).tolist()
+        if kind == 'bar':
+            # plot bar
+            plt.bar(
+            x=x,
+            height=_df.value,
+            align='edge', # default
+            **sp_kws
+            )
+        elif kind == 'line':
+            # plot line
+            plt.plot(
+                x,
+                _df.value,
+                **sp_kws
+            )
+
+        elif kind == 'kde':
+            # extract counts,edges
+            h,e = _df.value.to_numpy(),_df.Exponent.to_numpy()
+            n = sp_kws.pop('n') 
+            x, act = _generate_underlying_data(h,e,n=n)
+            # store act values for formating x-axis outside
+            if facet_dtypes != None:
+                kde_facet_ax_ticks.append(act)
+
+            sns.kdeplot(x,ax=ax,**sp_kws)
+            sp_kws['n'] = n # n is re-used for each facet so need to reset it
+            
+
+            # raise NotImplementedError('The feature has not yet been implmented')
+        else:
+            err = f"Plot kind {kind} not recognized, 'line', 'bar' or 'kde' are valid arguements"
+            raise ValueError(err)
+
+        
+        # Only do this for non-facet plots 
+        if ax != None:
+            if kind == 'kde':
+                ax.set_xticks(act)
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act)))
+            else:
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
+            if xtick_labelsize:
+                ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
+            # Draw dtype annotations
+            if dtype_annotation:
+                _annotate_nf_details(
+                    ax=ax,
+                    x_values=x,
+                    fp_dtype=df_.metadata.dtype.item() if type(dtype_annotation) == bool else dtype_annotation,
+                    dtype_info=dtype_info
+                    )
+                # legend location -> outter fn argument?
+                plt.legend(**legend_kws)
+
+
+    _validate_df_hash(df)
+    # Filter rows in DF to those of interest (w.r.t. tt and layer type)
+    facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
+    # query and get the specific step (may need to change this if allowing for faceting on steps)
+    df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
+
+
+    if facet:
+
+        g = sns.FacetGrid(
+            df,
+            col=facet,
+            # may move to the height / aspect approach for our api, currently sticking to figsize
+            height=figsize[1],
+            aspect=figsize[0]/figsize[1],
+            col_wrap=col_wrap,
+            **facet_kws # Need to find a solution to place the legend appropriately
+        )
+
+        g.map_dataframe(_facet_plot_wrapper)
+        # get the exponent column names and sort
+        l = df.exponent_count.columns.to_list()
+        l.sort()
+
+        
+        # For storing legend data.
+        all_leg_handles = {}
+        # get the set of logged dtypes
+        l_dtypes = df.metadata.dtype.unique().tolist() if dtype_annotation == True else None
+            
+        for ind,ax in enumerate(g.axes.flat):
+
+            if kind == 'kde':
+                ax.set_xticks(kde_facet_ax_ticks[ind])
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(kde_facet_ax_ticks[ind])))
+            else: 
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(l)))
+            if xtick_labelsize:
+                ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
+
+
+            # if metadata dtype is being plotted, different dtypes will use the same colour, need to fix this
+            if dtype_annotation:
+                _annotate_nf_details(
+                ax=ax,
+                x_values=list(map(str,l)) if kind != 'kde' else kde_facet_ax_ticks[ind] ,
+                fp_dtype=facet_dtypes[ind] if type(dtype_annotation) == bool else dtype_annotation,
+                dtype_info=dtype_info,
+                logged_dtypes=l_dtypes if l_dtypes else None
+                )
+
+                # For creating overall legend for dtype annotations.
+                han_artists, han_keys = ax.get_legend_handles_labels()
+                # As there is likely to be duplicates in annotations
+                for hk,ha in zip(han_keys,han_artists):
+                    if hk not in all_leg_handles.keys():
+                        all_leg_handles[hk] = ha
+
+
+        # Add the legend - Want to overlap this some how.
+        if dtype_annotation:
+            g.add_legend(legend_data=all_leg_handles,**legend_kws)
+        # g.tight_layout()
+        g.set_titles("{col_var[1]} = '{col_name}'")
+        
+        # Overall Plot title
+        if fig_title: g.figure.suptitle(fig_title) 
+
+        return g
+    
+    # No faceting -> Single plot 
+    # Could just use facet grid for everything?
+    else:
+        # create figure
+        fig, ax = plt.subplots(figsize=figsize)
+
+        # plot figure
+        _plot_single(df_=df,ax=ax)
+
+        # Overall plot title ...
+        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')
+
+
+
+        
+        return fig
+
 
 # Heatmaps 
-
-# Kde (need to translate from bins counts to format for kde)
