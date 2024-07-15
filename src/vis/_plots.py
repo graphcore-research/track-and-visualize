@@ -450,9 +450,12 @@ def exp_hist(
         if ax != None:
             if kind == 'kde':
                 ax.set_xticks(act)
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act)))
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+                ax.set_xbound(lower=act[0],upper=act[-1])
             else:
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
             if xtick_labelsize:
                 ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
             # Draw dtype annotations
@@ -502,6 +505,8 @@ def exp_hist(
             if kind == 'kde':
                 ax.set_xticks(kde_facet_ax_ticks[ind])
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(kde_facet_ax_ticks[ind])))
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+                ax.set_xbound(lower=kde_facet_ax_ticks[ind][0],upper=kde_facet_ax_ticks[ind][-1])
             else: 
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(l)))
             if xtick_labelsize:
