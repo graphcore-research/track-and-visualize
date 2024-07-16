@@ -1,6 +1,9 @@
 from enum import Enum
 import pandas as _pd
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, TypeVar
+from dataclasses import dataclass
+import inspect
+# from pandas._typing import 
 # from abc import ABC
 
 """
@@ -9,6 +12,19 @@ from typing import Optional, Dict, Any
 
 # The can be used for generating queries, (all data stored in log)
 
+class WildCard:
+    ...
+    def __str__(self):
+        return '*'
+
+class WCAL1(WildCard):
+    min: int =  1
+    max: int = 2**32
+
+@dataclass
+class WildCardTracker:
+    dtype: Any
+    count: int = 0
 
 class TensorType(str, Enum):
     Activation = 'Activation'
@@ -16,27 +32,33 @@ class TensorType(str, Enum):
     Gradient = 'Gradient'
     OptimiserState = 'OptimiserState'
 
+@dataclass
+class SchemaMap:
+    """
+        For mapping from the Table format of your Logs to the format expected by the downstream tools in the library.
+    """
+    metadata: Dict
+    scalar_stats: Union[Dict[str,str], None]
+    exponent_counts: Union[Dict[str,str],None]
+    # tl_index_map:
 
-class _BaseFrame:
-    def __init__(self, df):
-        self._df = df
+    def __post_init__(self):
+        # both scalar_stats and exponent_counts can't be None -> 
+        assert self.scalar_stats != None or self.exponent_counts != None, 'A mapping must be provided for either scalar_stats or exponent_counts'
+        
+        # assert that keys provided exist in the logframe schema keys
+        sp = set(self.metadata.keys())
+        ss = set(LogFrame.schema['metadata'].keys())
+        assert sp.issubset(ss), f'The keys: {",".join(list(sp.difference()))} , are not in the allowed set: {",".join(list(ss))}'
 
-    def _ipython_display_(self):
-        # just want to display internal dataframe...
-        print(self._df)
+        
 
-    @staticmethod
-    def _assert_schema(schema: Dict, df: _pd.DataFrame):
-        'implement schema checking logic..'
-        return True
-
-
-class LogFrame(_BaseFrame):
+class LogFrame:
     # Need to attach additional metadata that is per iteration (i.e. train/val 
     # loss, scheduled lr, etc..)
     # Also model / mp config
+
     """
-        
         table_schema: {
             # metadata which describes the logged tensor
             'metadata' : {
@@ -48,10 +70,11 @@ class LogFrame(_BaseFrame):
                 'dim' : Tuple[int] # Tensor Dimensions
             },
             # single value summaries of the tensor - what they are
-            # naming is irrelevant (can be user provided)
+            # named is irrelevant (can be user provided)
+            # e.g. mean,std,mean_abs,rm2,ofc,ufc,...
+            # ofc (over flow count), ufc (underflow count)
             'scalar_stats : {
-                * : int | float # e.g. mean,std,mean_abs,rm2,ofc,ufc,...
-                # ofc (over flow count), ufc (underflow count)
+                * : int | float 
             }
             # what other special numbers??
             'exponent_counts: {
@@ -61,42 +84,42 @@ class LogFrame(_BaseFrame):
             }
         }
     """
-    # static schema variable..
-    _schema: Dict[str, Any] = {}
+    _toplevels = ('metadata','general_stats','exponent_count')
+    # Use Optional for a column whether the column is optional?
+    schema: Dict[str, Dict[Any,Any]] = {
+        _toplevels[0] : {
+            'name': str,
+            'type' : str,
+            'grad' : Union[str,TensorType],
+            'step': int,
+            'dtype': str,
+            # 'dim' : Any
+        },
+        _toplevels[1]  : {
+            WCAL1 : Union[int, float]
+        },
+        _toplevels[2]  : {
+            float('-inf') : int,
+            float('inf') : int,
+            WCAL1 : int 
+        }
+    }
 
-    def __init__(self, df: _pd.DataFrame):
-        # Could be replaced with schema mismatch exception in the base class
-        assert LogFrame._assert_schema(
-            schema=LogFrame._schema,
-            df=df), f'Provided DataFrame does not match {LogFrame.__name__} \
-                Schema: {LogFrame._schema}'
-        
-        super().__init__(df=df)
 
-    # could use generics?
     @staticmethod
-    def from_pickle(path: str, map: Optional[Dict] = None) -> "LogFrame":
-        df = _pd.read_pickle(path)
-        LogFrame._assert_schema(
-            LogFrame._schema,
-            df=df
-        )
-        return LogFrame(df=df)
+    def get_flat_schema():
+        flat_schema,wilcards = {},{}
+        for k,v in LogFrame.schema.items():
+            if type(v) == dict:
+                for k_, v_ in v.items():
+                    # slightly hacky as this doesn't differentiate between classes and variables (that aren't subclasses of WildCard)
+                    if inspect.isclass(k_) and issubclass(k_,WildCard):
+                        # could make this dict into a class?
+                        wilcards[(k,k_)] = WildCardTracker(dtype=v_)
+                    else:
+                        flat_schema[(k,k_)] = v_
 
 
-class MasterView(_BaseFrame):
-    """
-        Something which can be plotted
-    """
-    _schema: Dict[str, Any] = {}
 
-    def __init__(self, df: _pd.DataFrame, tt: TensorType, metric: str):
-        self.tt = tt
-        self.metric = metric
-        # Could be replaced with schema mismatch exception in the base class
-        assert MasterView._assert_schema(
-            schema=MasterView._schema,
-            df=df), f'Provided DataFrame does not match {MasterView.__name__} \
-                Schema: {MasterView._schema}'
-        
-        super().__init__(df=df)
+        return flat_schema, wilcards
+    
