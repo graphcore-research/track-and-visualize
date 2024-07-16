@@ -1,5 +1,7 @@
 from functools import partial
+import matplotlib.axes
 import matplotlib.pyplot as plt
+import matplotlib
 import ml_dtypes
 import numpy as np
 import seaborn as sns
@@ -25,6 +27,7 @@ class _PlotPrepper:
 
 
 def _base2_format(l,value, tick_number):
+    
     # the categorical case
     if type(value) == int:
         value = l[tick_number]
@@ -34,9 +37,9 @@ def _base2_format(l,value, tick_number):
         return f"$2^{{{value}}}$"
     # ... continuous x-axis
     else:
-        if value <= l[0]:
+        if value <= float(l[0]):
             return -float('inf')
-        elif value >= l[-1]:
+        elif value >= float(l[-1]):
             return float('inf')
         return f"$2^{{{int(np.log2(value))}}}$"
 
@@ -332,6 +335,104 @@ def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) ->
     return np.concatenate(empty), act
 
 
+class _ExpHistPlotter:
+    def __init__(self, 
+                 kind, 
+                 sp_kws,
+                 xtick_labelsize,
+                 xtick_rotation,
+                 dtype_annotation,
+                 dtype_info,
+                 logged_dtypes,
+                 legend_kws) -> None:
+        self.kind = kind
+        self.sp_kws = sp_kws
+        self.xtick_labelsize = xtick_labelsize
+        self.xtick_rotation = xtick_rotation
+        self.dtype_annotation = dtype_annotation
+        self.dtype_info = dtype_info
+        self.logged_dtypes = logged_dtypes
+        self.legend_kws = legend_kws
+        # for faceted plots
+        self.all_leg_handles = {}
+
+    def _plot_single(self,df_, ax: Union[matplotlib.axes.Axes, None]):   
+        # normalize, convert to long format & sort ascending
+        fp = False
+        _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
+        # when using seaborn facet grid
+        if ax == None:
+            # internally sns fg sets the current axis -> therefore retrieve it
+            ax = plt.gca()
+            fp = True
+        # make string for categorical plot
+        x = _df.Exponent.astype(str).tolist()
+        if self.kind == 'bar':
+            # plot bar
+            ax.bar(
+            x=x,
+            height=_df.value,
+            align='edge', # default
+            **self.sp_kws
+            )
+        elif self.kind == 'line':
+            # plot line
+            ax.plot(
+                x,
+                _df.value,
+                **self.sp_kws
+            )
+
+        elif self.kind == 'kde':
+            # extract counts,edges
+            h,e = _df.value.to_numpy(),_df.Exponent.to_numpy()
+            n = self.sp_kws.pop('n') 
+            x, act = _generate_underlying_data(h,e,n=n)
+            # store act values for formating x-axis outside
+            # if self.facet_dtypes != None:
+                # self.kde_facet_ax_ticks.append(act)
+
+            sns.kdeplot(x,ax=ax,**self.sp_kws)
+            self.sp_kws['n'] = n # n is re-used for each facet so need to reset it
+            
+
+            # raise NotImplementedError('The feature has not yet been implmented')
+        else:
+            err = f"Plot kind {self.kind} not recognized, 'line', 'bar' or 'kde' are valid arguements"
+            raise ValueError(err)
+
+        
+        
+        # 
+        if self.kind == 'kde':
+            ax.set_xticks(act)
+            ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+            ax.set_xbound(lower=act[0],upper=act[-1])
+        else:
+            ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+        if self.xtick_labelsize:
+            ax.xaxis.set_tick_params(labelsize=self.xtick_labelsize,rotation=self.xtick_rotation)
+            # Draw dtype annotations
+        if self.dtype_annotation:
+            _annotate_nf_details(
+                ax=ax,
+                x_values=x,
+                fp_dtype=df_.metadata.dtype.item() if type(self.dtype_annotation) == bool else self.dtype_annotation,
+                dtype_info=self.dtype_info
+                )
+                # legend location -> outter fn argument?
+            ax.legend(**self.legend_kws)
+
+            # if metadata dtype is being plotted, different dtypes will use the same colour, need to fix this
+            if fp:
+                # For creating overall legend for dtype annotations.
+                han_artists, han_keys = ax.get_legend_handles_labels()
+                # As there is likely to be duplicates in annotations
+                for hk,ha in zip(han_keys,han_artists):
+                    if hk not in self.all_leg_handles.keys():
+                        self.all_leg_handles[hk] = ha
 
 
 # HistoGram Plots - BarPlot
@@ -348,9 +449,9 @@ def exp_hist(
         xtick_labelsize: int = 12,
         xtick_rotation: int = 45, # can I make these kwargs will defaults??
         fig_title: str = None,
-        facet_kws: Dict = None,
-        sp_kws: Dict = None,
-        legend_kws: Dict = None,
+        facet_kws: Union[Dict,None] = None,
+        sp_kws: Union[Dict,None] = None,
+        legend_kws: Union[Dict,None] = None,
         **kwargs):
     """
     Bar Plot, Line Plot or resampled kde plot (based on resampling from histogram) of a Tensor type or (types: facted plot) of a single layer or (set of layers: facted plot), for a single training step.
@@ -404,104 +505,37 @@ def exp_hist(
     if facet_kws == None: facet_kws = dict(legend_out=False)
 
     
-    facet_dtypes = None # used for annotations...
-    kde_facet_ax_ticks = [] # used for setting x axis ticks in kde plots
-    # Internal Functions ...
-    def _facet_plot_wrapper(*args,**kwargs):
-        nonlocal facet_dtypes # Set scope to outer fn scope
-        # store dtype for this facet
-        if facet_dtypes == None:
-            facet_dtypes = [kwargs['data'].metadata.dtype.item()]
-        else:
-            facet_dtypes.append(kwargs['data'].metadata.dtype.item())
-
-        _plot_single(df_ = kwargs['data'], ax= None)
-
-
-    def _plot_single(df_, ax):
-        # -- Using from outer fn scope
-        # kind 
-        # sp_kws
-        # facet_dtypes
-        # kde_facet_ax_ticks
-        # xtick_labelsize
-        # xtick_rotation
-        # dtype_annotation
-        # dtype_info
-        # legend_kws
-        
-        # normalize, convert to long format & sort ascending
-        _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
-        # make string for categorical plot
-        x = _df.Exponent.astype(str).tolist()
-        if kind == 'bar':
-            # plot bar
-            plt.bar(
-            x=x,
-            height=_df.value,
-            align='edge', # default
-            **sp_kws
-            )
-        elif kind == 'line':
-            # plot line
-            plt.plot(
-                x,
-                _df.value,
-                **sp_kws
-            )
-
-        elif kind == 'kde':
-            # extract counts,edges
-            h,e = _df.value.to_numpy(),_df.Exponent.to_numpy()
-            n = sp_kws.pop('n') 
-            x, act = _generate_underlying_data(h,e,n=n)
-            # store act values for formating x-axis outside
-            if facet_dtypes != None:
-                kde_facet_ax_ticks.append(act)
-
-            sns.kdeplot(x,ax=ax,**sp_kws)
-            sp_kws['n'] = n # n is re-used for each facet so need to reset it
-            
-
-            # raise NotImplementedError('The feature has not yet been implmented')
-        else:
-            err = f"Plot kind {kind} not recognized, 'line', 'bar' or 'kde' are valid arguements"
-            raise ValueError(err)
-
-        
-        # Only do this for non-facet plots 
-        if ax != None:
-            if kind == 'kde':
-                ax.set_xticks(act)
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
-                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
-                ax.set_xbound(lower=act[0],upper=act[-1])
-            else:
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
-                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
-            if xtick_labelsize:
-                ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
-            # Draw dtype annotations
-            if dtype_annotation:
-                _annotate_nf_details(
-                    ax=ax,
-                    x_values=x,
-                    fp_dtype=df_.metadata.dtype.item() if type(dtype_annotation) == bool else dtype_annotation,
-                    dtype_info=dtype_info
-                    )
-                # legend location -> outter fn argument?
-                plt.legend(**legend_kws)
-
-
     _validate_df_hash(df)
     # Filter rows in DF to those of interest (w.r.t. tt and layer type)
     facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
     # query and get the specific step (may need to change this if allowing for faceting on steps)
     df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
 
+    # get the set of logged dtypes
+    l_dtypes = df.metadata.dtype.unique().tolist() if dtype_annotation == True and facet else None
+
+
+    
+    plotter = _ExpHistPlotter(
+        kind=kind,
+        sp_kws=sp_kws,
+        xtick_labelsize=xtick_labelsize,
+        xtick_rotation=xtick_rotation,
+        dtype_annotation=dtype_annotation,
+        dtype_info=dtype_info,
+        logged_dtypes=l_dtypes,
+        legend_kws = legend_kws
+    )
+    
+    # Internal Functions ...
+    def _facet_plot_wrapper(*args,**kwargs):
+         # Set scope to outer fn scope
+        # store dtype for this facet
+        plotter._plot_single(df_ = kwargs['data'], ax= None)
+
+
 
     if facet:
-
         g = sns.FacetGrid(
             df,
             col=facet,
@@ -514,49 +548,13 @@ def exp_hist(
 
         g.map_dataframe(_facet_plot_wrapper)
         # get the exponent column names and sort
-        l = df.exponent_count.columns.to_list()
-        l.sort()
+        # l = df.exponent_count.columns.to_list()
+        # l.sort()
 
         
-        # For storing legend data.
-        all_leg_handles = {}
-        # get the set of logged dtypes
-        l_dtypes = df.metadata.dtype.unique().tolist() if dtype_annotation == True else None
-            
-        for ind,ax in enumerate(g.axes.flat):
-
-            if kind == 'kde':
-                ax.set_xticks(kde_facet_ax_ticks[ind])
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(kde_facet_ax_ticks[ind])))
-                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
-                ax.set_xbound(lower=kde_facet_ax_ticks[ind][0],upper=kde_facet_ax_ticks[ind][-1])
-            else: 
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(l)))
-            if xtick_labelsize:
-                ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
-
-
-            # if metadata dtype is being plotted, different dtypes will use the same colour, need to fix this
-            if dtype_annotation:
-                _annotate_nf_details(
-                ax=ax,
-                x_values=list(map(str,l)) if kind != 'kde' else kde_facet_ax_ticks[ind] ,
-                fp_dtype=facet_dtypes[ind] if type(dtype_annotation) == bool else dtype_annotation,
-                dtype_info=dtype_info,
-                logged_dtypes=l_dtypes if l_dtypes else None
-                )
-
-                # For creating overall legend for dtype annotations.
-                han_artists, han_keys = ax.get_legend_handles_labels()
-                # As there is likely to be duplicates in annotations
-                for hk,ha in zip(han_keys,han_artists):
-                    if hk not in all_leg_handles.keys():
-                        all_leg_handles[hk] = ha
-
-
-        # Add the legend - Want to overlap this some how.
+        # # Add the legend - Want to overlap this some how.
         if dtype_annotation:
-            g.add_legend(legend_data=all_leg_handles,**legend_kws)
+            g.add_legend(legend_data=plotter.all_leg_handles,**legend_kws)
         # g.tight_layout()
         g.set_titles("{col_var[1]} = '{col_name}'")
         
@@ -570,16 +568,10 @@ def exp_hist(
     else:
         # create figure
         fig, ax = plt.subplots(figsize=figsize)
-
         # plot figure
-        _plot_single(df_=df,ax=ax)
-
+        plotter._plot_single(df_=df,ax=ax)
         # Overall plot title ...
-        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')
-
-
-
-        
+        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')        
         return fig
 
 
