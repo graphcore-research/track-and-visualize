@@ -94,6 +94,7 @@ def scalar_global_heatmap(
         inc: int = 1,
         x=_q.IT,
         y=_q.NAME,
+        figsize = (10,10),
         col_wrap: int = None,
         **kwargs):
     """
@@ -137,12 +138,20 @@ def scalar_global_heatmap(
 
     df = _flatten_multi_index(df=df)
 
-    fig = sns.heatmap(
-    data=df.pivot(
-        index=y[1],
-        columns=x[1],
-        values=scalar_metric),
-        **kwargs)
+    fig, ax = plt.subplots(figsize=figsize) 
+    with plt.ioff():
+        fig = sns.heatmap(
+        data=df.pivot(
+            index=y[1],
+            columns=x[1],
+            values=scalar_metric),
+            ax=ax,
+            **kwargs)
+        ytick_labelsize = 4
+        ytick_rotation = 0
+        
+        ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
+        # ax.yaxis.set_major_locator(plt.MultipleLocator(1))
 
     return fig
 
@@ -322,6 +331,9 @@ def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) ->
 
     return np.concatenate(empty), act
 
+
+
+
 # HistoGram Plots - BarPlot
 def exp_hist(
         df: pd.DataFrame,
@@ -407,6 +419,17 @@ def exp_hist(
 
 
     def _plot_single(df_, ax):
+        # -- Using from outer fn scope
+        # kind 
+        # sp_kws
+        # facet_dtypes
+        # kde_facet_ax_ticks
+        # xtick_labelsize
+        # xtick_rotation
+        # dtype_annotation
+        # dtype_info
+        # legend_kws
+        
         # normalize, convert to long format & sort ascending
         _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
         # make string for categorical plot
@@ -450,9 +473,12 @@ def exp_hist(
         if ax != None:
             if kind == 'kde':
                 ax.set_xticks(act)
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act)))
+                ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+                ax.set_xbound(lower=act[0],upper=act[-1])
             else:
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
             if xtick_labelsize:
                 ax.xaxis.set_tick_params(labelsize=xtick_labelsize,rotation=xtick_rotation)
             # Draw dtype annotations
@@ -502,6 +528,8 @@ def exp_hist(
             if kind == 'kde':
                 ax.set_xticks(kde_facet_ax_ticks[ind])
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(kde_facet_ax_ticks[ind])))
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+                ax.set_xbound(lower=kde_facet_ax_ticks[ind][0],upper=kde_facet_ax_ticks[ind][-1])
             else: 
                 ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(l)))
             if xtick_labelsize:
