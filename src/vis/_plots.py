@@ -88,7 +88,35 @@ def _gen_facet_query(layer, tt, df) -> Tuple[Any, str]:
 
     return facet, query
 
-    
+
+class _GlobalHeatmapPlotter:
+    def __init__(self, x: Tuple[Any,Any], y: Tuple[Any,Any], scalar_metric: str, **kwargs) -> None:
+        self.x = x
+        self.y = y
+        self.scalar_metric = scalar_metric
+        self.kwargs = kwargs
+
+    def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
+
+        df = df[[self.x, self.y, _q.SCA(self.scalar_metric)]]
+
+        df = _flatten_multi_index(df=df)
+
+        dfp = df.pivot(
+                index=self.y[1],
+                columns=self.x[1],
+                values=self.scalar_metric)
+
+        with plt.ioff():
+            fig = sns.heatmap(
+            data=dfp,
+                ax=ax,
+                **self.kwargs)
+            ytick_labelsize = 4
+            ytick_rotation = 0
+            
+            ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
+            ax.yaxis.set_major_locator(plt.MultipleLocator(1)) # display every label on y-axis
 
 def scalar_global_heatmap(
         df: pd.DataFrame,
@@ -97,7 +125,7 @@ def scalar_global_heatmap(
         inc: int = 1,
         x=_q.IT,
         y=_q.NAME,
-        figsize = (10,10),
+        figsize: Tuple[float,float] = (10,10),
         col_wrap: int = None,
         **kwargs):
     """
@@ -136,25 +164,22 @@ def scalar_global_heatmap(
     df = df.query(
         f'@df.metadata.grad == "{tt.name}" & \
             @df.metadata.step % {inc} == 0')
+    
+    plotter = _GlobalHeatmapPlotter(
+        x=x,
+        y=y,
+        scalar_metric=scalar_metric,
+        **kwargs
+    )
 
-    df = df[[x, y, _q.SCA(scalar_metric)]]
-
-    df = _flatten_multi_index(df=df)
-
+    # create figure
     fig, ax = plt.subplots(figsize=figsize) 
-    with plt.ioff():
-        fig = sns.heatmap(
-        data=df.pivot(
-            index=y[1],
-            columns=x[1],
-            values=scalar_metric),
-            ax=ax,
-            **kwargs)
-        ytick_labelsize = 4
-        ytick_rotation = 0
-        
-        ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
-        # ax.yaxis.set_major_locator(plt.MultipleLocator(1))
+
+    plotter._plot_single(
+        df=df, ax=ax
+    )
+    
+
 
     return fig
 
@@ -166,7 +191,7 @@ def scalar_line(
         x=_q.IT,
         col_wrap: int = None,
         kind='line',
-        facet_kws: Dict[Any,Any] = None,
+        facet_kws: Union[Dict[Any,Any],None] = None,
         **kwargs 
     ):
     """
@@ -529,8 +554,7 @@ def exp_hist(
     
     # Internal Functions ...
     def _facet_plot_wrapper(*args,**kwargs):
-         # Set scope to outer fn scope
-        # store dtype for this facet
+        # pass the DF (from)
         plotter._plot_single(df_ = kwargs['data'], ax= None)
 
 
