@@ -8,8 +8,8 @@ import seaborn as sns
 import pandas as pd
 
 from src._transform import _flatten_multi_index  # type: ignore
-from ..log.common import TensorType
-from ..log.common import _q
+from ..log.common import TensorType, _q
+
 from ._errors import FacetException
 from src.log.common._utils import _validate_df_hash
 from typing import Any, Callable, Dict, List, Literal, Tuple, Optional, Union, Pattern
@@ -96,8 +96,14 @@ class _GlobalHeatmapPlotter:
         self.scalar_metric = scalar_metric
         self.kwargs = kwargs
 
+
+    def _query(self,df :pd.DataFrame, tt: TensorType, inc: int):
+        return df.query(f'@df.metadata.grad == "{tt.name}" & @df.metadata.step % {inc} == 0')
+        
+
     def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
 
+        # print(self.x,self.y,self.scalar_metric)
         df = df[[self.x, self.y, _q.SCA(self.scalar_metric)]]
 
         df = _flatten_multi_index(df=df)
@@ -106,17 +112,22 @@ class _GlobalHeatmapPlotter:
                 index=self.y[1],
                 columns=self.x[1],
                 values=self.scalar_metric)
-
+        
+        
         with plt.ioff():
-            fig = sns.heatmap(
+            
+            ax = sns.heatmap(
             data=dfp,
                 ax=ax,
+                yticklabels=True,
                 **self.kwargs)
+            
+            # print(dfp.columns)
             ytick_labelsize = 4
             ytick_rotation = 0
-            
             ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
-            ax.yaxis.set_major_locator(plt.MultipleLocator(1)) # display every label on y-axis
+            
+            # ax.yaxis.set_major_locator(plt.MultipleLocator(1)) # display every label on y-axis
 
 def scalar_global_heatmap(
         df: pd.DataFrame,
@@ -152,19 +163,16 @@ def scalar_global_heatmap(
 
     if ((type(tt) == list or tt == None) and (type(scalar_metric) == list or scalar_metric == None)):
         raise FacetException('Cannot Facet across both TensorType and scalar_metric, Please choose a single value for one')
-    if inc <= 1:
-        raise ValueError('inc must be a positive integer value')
+    if inc < 1:
+        raise ValueError('inc must be a positive integer value greater than zero')
 
     _validate_df_hash(df) 
     
     # Implement Logic for faceting on tt or scalar_metric
     if (type(tt) == list or tt == None) or (type(scalar_metric)== list or scalar_metric == None):
         raise NotImplementedError('Faceting not yet implemented!')
-
-    df = df.query(
-        f'@df.metadata.grad == "{tt.name}" & \
-            @df.metadata.step % {inc} == 0')
     
+    # Create Plotter
     plotter = _GlobalHeatmapPlotter(
         x=x,
         y=y,
@@ -172,16 +180,28 @@ def scalar_global_heatmap(
         **kwargs
     )
 
+    # filter relevent rows
+    df = plotter._query(
+        df,tt,inc
+    )
+
     # create figure
     fig, ax = plt.subplots(figsize=figsize) 
-
+    # plot on axes
     plotter._plot_single(
         df=df, ax=ax
     )
+
+    fig.suptitle(scalar_metric.upper())
     
 
 
     return fig
+
+
+class ScalarLinePlotter:
+    def __init__(self) -> None:
+        pass
 
 def scalar_line(
         df: pd.DataFrame,
@@ -368,18 +388,24 @@ class _ExpHistPlotter:
                  xtick_rotation,
                  dtype_annotation,
                  dtype_info,
-                 logged_dtypes,
                  legend_kws) -> None:
         self.kind = kind
         self.sp_kws = sp_kws
         self.xtick_labelsize = xtick_labelsize
         self.xtick_rotation = xtick_rotation
         self.dtype_annotation = dtype_annotation
-        self.dtype_info = dtype_info
-        self.logged_dtypes = logged_dtypes
+        self.dtype_info = dtype_info 
         self.legend_kws = legend_kws
         # for faceted plots
         self.all_leg_handles = {}
+
+    def _query(self,df: pd.DataFrame, layer_name: str, tt: TensorType, step: int):
+
+        df = df.query(f'@df.metadata.name == "{layer_name}" & @df.metadata.grad == "{tt.name}"').pipe(lambda x: x[x.metadata.step == step])
+        # set logged dtypes
+        self.logged_dtypes = df.metadata.dtype.unique().tolist()
+
+        return df 
 
     def _plot_single(self,df_, ax: Union[matplotlib.axes.Axes, None]):   
         # normalize, convert to long format & sort ascending
@@ -548,18 +574,18 @@ def exp_hist(
         xtick_rotation=xtick_rotation,
         dtype_annotation=dtype_annotation,
         dtype_info=dtype_info,
-        logged_dtypes=l_dtypes,
+        # logged_dtypes=l_dtypes,
         legend_kws = legend_kws
     )
     
-    # Internal Functions ...
-    def _facet_plot_wrapper(*args,**kwargs):
-        # pass the DF (from)
-        plotter._plot_single(df_ = kwargs['data'], ax= None)
 
 
 
     if facet:
+        # Internal Functions ...
+        def _facet_plot_wrapper(*args,**kwargs):
+            # pass the DF (from)
+            plotter._plot_single(df_ = kwargs['data'], ax= None)
         g = sns.FacetGrid(
             df,
             col=facet,
@@ -590,8 +616,10 @@ def exp_hist(
     # No faceting -> Single plot 
     # Could just use facet grid for everything?
     else:
+
         # create figure
         fig, ax = plt.subplots(figsize=figsize)
+        df_ = plotter._query(df,layer,tt,step)
         # plot figure
         plotter._plot_single(df_=df,ax=ax)
         # Overall plot title ...
