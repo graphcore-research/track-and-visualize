@@ -12,7 +12,6 @@ from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter
 
 from IPython import display
 import matplotlib.pyplot as plt 
-plt.switch_backend('ipympl')
 
 class WidgetHolder:
         
@@ -27,17 +26,34 @@ class WidgetHolder:
                 layout=self.hbox_layout
             )
 
-            
-        def _f(self,*args,**kwargs):
-            # so it only updates on the final point (for dropdown)
-            if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel and 'index' in args[0]['old'].keys():
-                # overwrite redraw_fn args
+        def _redraw(self):
+            # overwrite redraw_fn args
                 for k,v in self.widgets.items():
-                    self.redraw_fn_args[k] = v.value
+                    if type(v.value) == list and len(v.value) == 1:
+                        self.redraw_fn_args[k] = v.value[0]
+                    else:
+                        self.redraw_fn_args[k] = v.value
 
                 self.redraw_fn(**self.redraw_fn_args)
+
+            
+        def _f(self,*args,**kwargs):
+            
+            # so it only updates on the final point (for dropdown)
+            if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel:
+
+                if isinstance(args[0]['owner'],widgets.widget_selection.Dropdown):
+                    if 'index' in args[0]['old'].keys():
+                        self._redraw()
+                    ...
+                if isinstance(args[0]['owner'], widgets.widget_tagsinput.TagsInput):
+                    # print('EVENT:',args[0])
+                    self._redraw()
+
             else:
+                # print(args,kwargs)
                 ...
+                
 
         def observe(self):
             for k,v in self.widgets.items():
@@ -95,10 +111,11 @@ class WidgetHolder:
 
 def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str, tt: TensorType, step: int, **kwargs):
 
+    print(layer,tt,step,kwargs)
     # clear all axes from the figure
     fig.clear()
-    # create new axes
-    new_ax = fig.gca()
+    
+    
     kind = kwargs.pop('kind','line')
     # Get required data & draw plot
     plotter = _ExpHistPlotter(
@@ -110,13 +127,28 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
                     dtype_info=kwargs.pop('dtype_info',(True,True,True)),
                     legend_kws = kwargs.pop('legend_kws',dict(fontsize=10,loc='upper right'))
                 )
+    
+
+
     _df = plotter._query(df,layer,tt, step)
-    plotter._plot_single(_df,new_ax)
+    print(plotter.facet)
+    if plotter.facet:
+        with plt.ioff():
+            plotter._plot_facet(
+            df=_df,
+            figure=fig
+            )
+    else:
+        # create new axes
+        new_ax = fig.gca()
+        with plt.ioff():
+            plotter._plot_single(_df,new_ax)
     # X-axis isn't functioning correctly
-
-    fig.suptitle(f'Layer: {layer}, Step: {step}, TT: {tt}')
-
+        fig.suptitle(f'Layer: {layer}, Step: {step}, TT: {tt}')
     fig.canvas.draw_idle()
+    print(fig.dpi, fig.get_figwidth())
+    
+    # print(fig.dpi,fig.get_figwidth())
 
 
 def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scalar_metric: str, tt: TensorType, inc: int,  **kwargs):
@@ -146,7 +178,14 @@ def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scala
     fig.canvas.draw_idle()
 
 
+def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame):
+    ...
+
+
 def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
+    # change backend
+    plt.switch_backend('ipympl')
+
     # could make this general with the plot function passed in (and check which it is, etc...)
     """
         f (Callable) : The plotting function you wish to make interactive
@@ -233,16 +272,16 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
 
 
     # General Plot Formating
-    fig.figure.canvas.toolbar_visible = False
-    fig.figure.canvas.figure_title = False
-    fig.figure.canvas.header_visible = False
-    fig.figure.canvas.footer_visible = False
-    fig.figure.canvas.resizable = False
+    fig.canvas.toolbar_visible = False
+    fig.canvas.figure_title = False
+    fig.canvas.header_visible = False
+    fig.canvas.footer_visible = False
+    fig.canvas.resizable = False
 
 
     # Canvas output & Figure set to same size
     APP = widgets.Output(layout={'width': f'{width}px','justify-content': 'space-around', 'overflow': 'scroll hidden'})
-    fig.figure.set_figwidth(width/fig.figure.dpi)
+    fig.figure.set_figwidth(width/fig.dpi)
     TOOLBAR = widgets.Output(layout={'width': '100%','justify-content': 'space-around'})
     
 
@@ -266,7 +305,7 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
         WH = WidgetHolder(parent=TOOLBAR,
                           kind = widgets.Dropdown(options=['bar','kde','line'], value='bar'),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.grad.unique().tolist(), value=kwargs['tt']),
-                          layer=  widgets.Dropdown(options=kwargs['df'].metadata.name.unique().tolist(), value = kwargs['layer']),
+                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)),
                           step = widgets.Dropdown(options=kwargs['df'].metadata.step.unique().tolist(), value = kwargs['step'])
                           )
     
@@ -288,7 +327,8 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
     # Add to master output...
     # APP.append_display_data(TOOLBAR)
     # APP.append_display_data(TOOLBAR)
-    APP.append_display_data(fig.figure.canvas)
+    APP.append_display_data(fig.canvas)
+
 
     
     display.display(TOOLBAR,APP)

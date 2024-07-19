@@ -1,5 +1,6 @@
 from functools import partial
 import matplotlib.axes
+import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib
 import ml_dtypes
@@ -9,21 +10,14 @@ import pandas as pd
 
 from src._transform import _flatten_multi_index  # type: ignore
 from ..log.common import TensorType, _q
+from ._facet import FacetGrid, relplot
 
 from ._errors import FacetException
 from src.log.common._utils import _validate_df_hash
 from typing import Any, Callable, Dict, List, Literal, Tuple, Optional, Union, Pattern
 
 
-def _get_fig():
-    ...
-
-
-class _PlotPrepper:
-    def __init__(self, df):
-        _validate_df_hash(df)
-        self.df = df
-
+################################### Helper Methods #############################################
 
 
 def _base2_format(l,value, tick_number):
@@ -87,218 +81,6 @@ def _gen_facet_query(layer, tt, df) -> Tuple[Any, str]:
     query = f'@df.metadata.name{lq} & @df.metadata.grad{tq}'
 
     return facet, query
-
-
-class _GlobalHeatmapPlotter:
-    def __init__(self, x: Tuple[Any,Any], y: Tuple[Any,Any], scalar_metric: str, **kwargs) -> None:
-        self.x = x
-        self.y = y
-        self.scalar_metric = scalar_metric
-        self.kwargs = kwargs
-
-
-    def _query(self,df :pd.DataFrame, tt: TensorType, inc: int):
-        return df.query(f'@df.metadata.grad == "{tt.name}" & @df.metadata.step % {inc} == 0')
-        
-
-    def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
-
-        # print(self.x,self.y,self.scalar_metric)
-        df = df[[self.x, self.y, _q.SCA(self.scalar_metric)]]
-
-        df = _flatten_multi_index(df=df)
-
-        dfp = df.pivot(
-                index=self.y[1],
-                columns=self.x[1],
-                values=self.scalar_metric)
-        
-        
-        with plt.ioff():
-            
-            ax = sns.heatmap(
-            data=dfp,
-                ax=ax,
-                yticklabels=True,
-                **self.kwargs)
-            
-            # print(dfp.columns)
-            ytick_labelsize = 4
-            ytick_rotation = 0
-            ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
-            
-            # ax.yaxis.set_major_locator(plt.MultipleLocator(1)) # display every label on y-axis
-
-def scalar_global_heatmap(
-        df: pd.DataFrame,
-        tt: Union[TensorType, List[TensorType], None],
-        scalar_metric: Union[str, List[str]],
-        inc: int = 1,
-        x=_q.IT,
-        y=_q.NAME,
-        figsize: Tuple[float,float] = (10,10),
-        col_wrap: int = None,
-        **kwargs):
-    """
-    Plots a global view a single tensor type or a facet across multiple tensor types with respect to some scalar metrics.
-    If tt = None or List[TensorType] it returns a faceted plot, if tt = TensorType then a single figure plot.
-
-    Args:
-         df (pd.DataFrame): the logs for the entire training run
-         tt (TensorType | List[TensorType] | None): the type of tensor for the view to include (if None plots a facet of all tensor types)
-         inc (int): the increment between training iterations to include
-         scalar_metric (str | List[str]): which scalar metric to plot
-         x : what to plot on x-axis
-         y : what to plot on y-axis
-         col_wrap: if faceting on tt or scalar metric set max-col width before wrapping
-         **kwargs: all kwargs from sns.heatmap
-
-         One of tt or scalar_metric must be a single value.
-       
-
-     Returns:
-         Figure
-
-    """
-
-    if ((type(tt) == list or tt == None) and (type(scalar_metric) == list or scalar_metric == None)):
-        raise FacetException('Cannot Facet across both TensorType and scalar_metric, Please choose a single value for one')
-    if inc < 1:
-        raise ValueError('inc must be a positive integer value greater than zero')
-
-    _validate_df_hash(df) 
-    
-    # Implement Logic for faceting on tt or scalar_metric
-    if (type(tt) == list or tt == None) or (type(scalar_metric)== list or scalar_metric == None):
-        raise NotImplementedError('Faceting not yet implemented!')
-    
-    # Create Plotter
-    plotter = _GlobalHeatmapPlotter(
-        x=x,
-        y=y,
-        scalar_metric=scalar_metric,
-        **kwargs
-    )
-
-    # filter relevent rows
-    df = plotter._query(
-        df,tt,inc
-    )
-
-    # create figure
-    fig, ax = plt.subplots(figsize=figsize) 
-    # plot on axes
-    plotter._plot_single(
-        df=df, ax=ax
-    )
-
-    fig.suptitle(scalar_metric.upper())
-    
-
-
-    return fig
-
-
-class ScalarLinePlotter:
-    def __init__(self) -> None:
-        pass
-
-def scalar_line(
-        df: pd.DataFrame,
-        layer: Union[str, List[str], Pattern],
-        tt: Union[TensorType, List[TensorType], None],
-        scalar_metric: Union[str,List[str]], # By Default
-        x=_q.IT,
-        col_wrap: int = None,
-        kind='line',
-        facet_kws: Union[Dict[Any,Any],None] = None,
-        **kwargs 
-    ):
-    """
-    Plot a line for a scalar metric or metric(s) for a Tensor type or (types: facted plot) of a single layer or set of layer(s).
-
-    One of tt or layer_name must be a single value.
-
-    Args:
-         df (pd.DataFrame): the logs for the entire training run
-         layer (str | List[str] | Pattern): a str (single layer), set of str or a compiled regex of a set of names to plot (each layer is a facet)
-         tt (TensorType | List[TensorType] | None): the type of tensor for the view to include (if None plots a facet of all tensor types)
-         scalar_metric (str | List[str]): which scalar metric or metrics to plot
-         x : what to plot on x-axis (defaults to training step)
-         col_wrap (int | None): if faceting on tt or scalar metric set max-col width before wrapping
-         kind: (str): Typle of plot to display accepts args "line" or "scatter"
-         facet_kws (Dict): Arguements for sns.FacetGrad, if faceting on TensorType,  sharey is automatically set to False (as grads and activations typically on very different scales)
-         **kwargs: all kwargs from `sns.relplot` (if faceting) or `sns.lineplot` (if not faceting & kind='line') | `sns.scatterplot` (if not faceting & kind='scatter')
-
-         One of tt or scalar_metric must be a single value.
-       
-
-     Returns:
-         Figure
-
-    """
-
-    if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
-        raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
-
-    _validate_df_hash(df)
-
-    # Filter rows in DF to those of interest
-    facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
-    df = df.query(query)
-    
-    # handling scalar metric input -> should check that the provided metric is in the DF?
-    scalar_metric = [scalar_metric] if type(scalar_metric) == str else scalar_metric
-    scalar_metric = list(df.general_stats.columns) if scalar_metric == None else scalar_metric
-
-    # columns to use from the provided DF
-    cols = [x] if facet == None else [x,facet]
-    cols.extend([_q.SCA(sm) for sm in scalar_metric])
-    df = df[cols]
-
-    # Removing multi-index
-    _df = _flatten_multi_index(df)
-
-
-    if facet:
-        if facet_kws == None:
-            facet_kws = {'sharey': True, 'sharex': True}
-
-        fig = sns.relplot(
-            pd.melt(_df,[x[1], facet[1]]).rename(columns={"variable" : "Metric"}),
-            x=x[1],
-            y='value', 
-            hue='Metric',
-            col=facet[1],
-            col_wrap= col_wrap,
-            facet_kws={'sharey': False, **{k:v for k,v in facet_kws.items() if k != 'sharey'}} if facet == _q.TTYPE else facet_kws, # slightly convoluted but had a weird var scope issue
-            kind=kind,
-            **kwargs
-        )
-    else:
-        plot_df = pd.melt(_df,[x[1]]).rename(columns={"variable" : "Metric"}) 
-        if kind == 'line':
-            fig = sns.lineplot(
-                plot_df,
-                x=x[1], 
-                y='value', 
-                hue='Metric',
-                **kwargs
-            )
-        elif kind == 'scatter':
-            fig = sns.scatterplot(
-                plot_df,
-                x=x[1], 
-                y='value', 
-                hue='Metric',
-                **kwargs
-            )
-        else:
-            err = f"Plot kind {kind} not recognized, 'line' or 'scatter' are valid arguements"
-            raise ValueError(err)
-
-    return fig
-
 
 def _annotate_nf_details(
         ax: plt.Axes, 
@@ -379,6 +161,248 @@ def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) ->
 
     return np.concatenate(empty), act
 
+################################### Plotting Methods #############################################
+
+
+class _GlobalHeatmapPlotter:
+    def __init__(self, x: Tuple[Any,Any], y: Tuple[Any,Any], scalar_metric: str, **kwargs) -> None:
+        self.x = x
+        self.y = y
+        self.scalar_metric = scalar_metric
+        self.kwargs = kwargs
+
+
+    def _query(self,df :pd.DataFrame, tt: TensorType, inc: int) -> pd.DataFrame:
+        return df.query(f'@df.metadata.grad == "{tt.name}" & @df.metadata.step % {inc} == 0')
+        
+
+    def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
+
+        # print(self.x,self.y,self.scalar_metric)
+        df = df[[self.x, self.y, _q.SCA(self.scalar_metric)]]
+
+        df = _flatten_multi_index(df=df)
+
+        dfp = df.pivot(
+                index=self.y[1],
+                columns=self.x[1],
+                values=self.scalar_metric)
+        
+        
+        with plt.ioff():
+            
+            ax = sns.heatmap(
+            data=dfp,
+                ax=ax,
+                yticklabels=True,
+                **self.kwargs)
+            
+            # print(dfp.columns)
+            ytick_labelsize = 4
+            ytick_rotation = 0
+            ax.yaxis.set_tick_params(labelsize=ytick_labelsize,rotation=ytick_rotation,)
+
+def scalar_global_heatmap(
+        df: pd.DataFrame,
+        tt: Union[TensorType, List[TensorType], None],
+        scalar_metric: Union[str, List[str]],
+        inc: int = 1,
+        x=_q.IT,
+        y=_q.NAME,
+        figsize: Tuple[float,float] = (10,10),
+        col_wrap: int = None,
+        **kwargs):
+    """
+    Plots a global view a single tensor type or a facet across multiple tensor types with respect to some scalar metrics.
+    If tt = None or List[TensorType] it returns a faceted plot, if tt = TensorType then a single figure plot.
+
+    Args:
+         df (pd.DataFrame): the logs for the entire training run
+         tt (TensorType | List[TensorType] | None): the type of tensor for the view to include (if None plots a facet of all tensor types)
+         inc (int): the increment between training iterations to include
+         scalar_metric (str | List[str]): which scalar metric to plot
+         x : what to plot on x-axis
+         y : what to plot on y-axis
+         col_wrap: if faceting on tt or scalar metric set max-col width before wrapping
+         **kwargs: all kwargs from sns.heatmap
+
+         One of tt or scalar_metric must be a single value.
+       
+
+     Returns:
+         Figure
+
+    """
+    if ((type(tt) == list or tt == None) and (type(scalar_metric) == list or scalar_metric == None)):
+        raise FacetException('Cannot Facet across both TensorType and scalar_metric, Please choose a single value for one')
+    if inc < 1:
+        raise ValueError('inc must be a positive integer value greater than zero')
+    # plt.switch_backend('inline')
+    _validate_df_hash(df) 
+    
+    # Implement Logic for faceting on tt or scalar_metric
+    if (type(tt) == list or tt == None) or (type(scalar_metric)== list or scalar_metric == None):
+        raise NotImplementedError('Faceting not yet implemented!')
+    
+    # Create Plotter
+    plotter = _GlobalHeatmapPlotter(
+        x=x,
+        y=y,
+        scalar_metric=scalar_metric,
+        **kwargs
+    )
+
+    # filter relevent rows
+    df = plotter._query(
+        df,tt,inc
+    )
+
+    # create figure
+    fig, ax = plt.subplots(figsize=figsize) 
+    # plot on axes
+    plotter._plot_single(
+        df=df, ax=ax
+    )
+
+    fig.suptitle(scalar_metric.upper())
+    
+
+
+    return fig
+
+
+class ScalarLinePlotter:
+    def __init__(self,kind: str, x: Tuple[Any,Any], scalar_metric: Union[str,List[str]],col_wrap,facet_kws, **kwargs) -> None:
+        self.kind = kind
+        self.kwargs = {**kwargs}
+        self.x = x
+        self.col_wrap = col_wrap
+        self.scalar_metric = [scalar_metric] if type(scalar_metric) == str else scalar_metric
+        self.facet_kws = facet_kws
+
+    def _query(self, df: pd.DataFrame, layer: str, tt: TensorType) -> pd.DataFrame:
+        self.facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
+        # handling scalar metric input -> should check that the provided metric is in the DF?
+        self.scalar_metric = list(df.general_stats.columns) if self.scalar_metric == None else self.scalar_metric
+        df = df.query(query)
+        
+        # columns to use from the provided DF
+        cols = [self.x] if self.facet == None else [self.x,self.facet]
+        cols.extend([_q.SCA(sm) for sm in self.scalar_metric])
+        df = df[cols]
+
+        # Removing multi-index
+        return _flatten_multi_index(df)
+
+    def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
+        df =  pd.melt(df,[self.x[1]]).rename(columns={"variable" : "Metric"}) 
+        if self.kind == 'line':
+            ax = sns.lineplot(
+                df,
+                x=self.x[1], 
+                y='value', 
+                hue='Metric',
+                ax=ax,
+                **self.kwargs
+            )
+        elif self.kind == 'scatter':
+            ax = sns.scatterplot(
+                df,
+                x=self.x[1], 
+                y='value', 
+                hue='Metric',
+                ax=ax,
+                **self.kwargs
+            )
+
+        else:
+            err = f"Plot kind {self.kind} not recognized, 'line' or 'scatter' are valid arguements"
+            raise ValueError(err)
+        
+
+    def _plot_facet(self,df, figure: matplotlib.figure.Figure):
+
+        if self.facet_kws == None:
+            self.facet_kws = {'sharey': True, 'sharex': True}
+
+        fig = relplot(
+            pd.melt(df,[self.x[1], self.facet[1]]).rename(columns={"variable" : "Metric"}),
+            x=self.x[1],
+            y='value', 
+            hue='Metric',
+            col=self.facet[1],
+            col_wrap= self.col_wrap,
+            facet_kws={'sharey': False, **{k:v for k,v in self.facet_kws.items() if k != 'sharey'}} if self.facet == _q.TTYPE else self.facet_kws, # slightly convoluted but had a weird var scope issue
+            kind=self.kind,
+            figure=figure,
+            **self.kwargs
+        )
+
+def scalar_line(
+        df: pd.DataFrame,
+        layer: Union[str, List[str], Pattern],
+        tt: Union[TensorType, List[TensorType], None],
+        scalar_metric: Union[str,List[str]], # By Default
+        x=_q.IT,
+        col_wrap: int = None,
+        kind='line',
+        figsize: Tuple[float,float] = (8,6),
+        facet_kws: Union[Dict[Any,Any],None] = None,
+        **kwargs 
+    ):
+    """
+    Plot a line for a scalar metric or metric(s) for a Tensor type or (types: facted plot) of a single layer or set of layer(s).
+
+    One of tt or layer_name must be a single value.
+
+    Args:
+         df (pd.DataFrame): the logs for the entire training run
+         layer (str | List[str] | Pattern): a str (single layer), set of str or a compiled regex of a set of names to plot (each layer is a facet)
+         tt (TensorType | List[TensorType] | None): the type of tensor for the view to include (if None plots a facet of all tensor types)
+         scalar_metric (str | List[str]): which scalar metric or metrics to plot
+         x : what to plot on x-axis (defaults to training step)
+         col_wrap (int | None): if faceting on tt or scalar metric set max-col width before wrapping
+         kind: (str): Typle of plot to display accepts args "line" or "scatter"
+         facet_kws (Dict): Arguements for sns.FacetGrad, if faceting on TensorType,  sharey is automatically set to False (as grads and activations typically on very different scales)
+         **kwargs: all kwargs from `sns.relplot` (if faceting) or `sns.lineplot` (if not faceting & kind='line') | `sns.scatterplot` (if not faceting & kind='scatter')
+
+         One of tt or scalar_metric must be a single value.
+       
+
+     Returns:
+         Figure
+
+    """
+    # plt.switch_backend('inline')
+    if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
+        raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
+
+    _validate_df_hash(df)
+
+    plotter = ScalarLinePlotter(kind=kind,
+                                x=x,
+                                scalar_metric=scalar_metric,
+                                facet_kws=facet_kws,
+                                col_wrap = col_wrap,
+                                **kwargs)
+    
+
+    df = plotter._query(df=df,layer=layer,tt=tt)
+
+
+    if plotter.facet:
+        print('called')
+        fig = plt.figure(figsize=figsize)
+        plotter._plot_facet(df=df,figure=fig)
+        
+    else:
+
+        # plotter = ScalarLinePlotter(kind=kind,x=x,scalar_metric=scalar_metric)
+        fig, ax = plt.subplots(figsize=figsize)
+        plotter._plot_single(df=df,ax=ax)
+
+    return fig
+
 
 class _ExpHistPlotter:
     def __init__(self, 
@@ -388,7 +412,9 @@ class _ExpHistPlotter:
                  xtick_rotation,
                  dtype_annotation,
                  dtype_info,
-                 legend_kws) -> None:
+                 legend_kws,
+                 **kwargs
+                 ) -> None:
         self.kind = kind
         self.sp_kws = sp_kws
         self.xtick_labelsize = xtick_labelsize
@@ -398,10 +424,14 @@ class _ExpHistPlotter:
         self.legend_kws = legend_kws
         # for faceted plots
         self.all_leg_handles = {}
+        self.kwargs = {**kwargs}
 
-    def _query(self,df: pd.DataFrame, layer_name: str, tt: TensorType, step: int):
+    def _query(self,df: pd.DataFrame, layer: str, tt: TensorType, step: int):
 
-        df = df.query(f'@df.metadata.name == "{layer_name}" & @df.metadata.grad == "{tt.name}"').pipe(lambda x: x[x.metadata.step == step])
+        # Filter rows in DF to those of interest (w.r.t. tt and layer type)
+        self.facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
+        # query and get the specific step (may need to change this if allowing for faceting on steps)
+        df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
         # set logged dtypes
         self.logged_dtypes = df.metadata.dtype.unique().tolist()
 
@@ -485,6 +515,39 @@ class _ExpHistPlotter:
                     if hk not in self.all_leg_handles.keys():
                         self.all_leg_handles[hk] = ha
 
+    def _plot_facet(self, df: pd.DataFrame, figure: matplotlib.figure.Figure = None):
+
+        # Internal Functions ...
+        def _facet_plot_wrapper(*args,**kwargs):
+            # pass the DF (from)
+            self._plot_single(df_ = kwargs['data'], ax= None)
+
+        g = FacetGrid(
+            df,
+            col=self.facet,
+            # may move to the height / aspect approach for our api, currently sticking to figsize
+            figure=figure,
+            col_wrap=self.kwargs.pop('col_wrap', None),
+            **self.kwargs.get('facet_kws', {}) # Need to find a solution to place the legend appropriately
+            )
+        
+        g = g.map_dataframe(_facet_plot_wrapper)
+        # get the exponent column names and sort
+        # l = df.exponent_count.columns.to_list()
+        # l.sort()
+        
+        print(g.figure.get_figwidth())
+        
+        # # Add the legend - Want to overlap this some how.
+        print(self.legend_kws, self.all_leg_handles)
+        # if self.dtype_annotation:
+            # g.add_legend(legend_data=self.all_leg_handles,**self.legend_kws)
+        print(g.figure.get_figwidth())
+        g.tight_layout()
+        g.set_titles("{col_var[1]} = '{col_name}'")
+        print(g.figure.get_figwidth())
+        ...
+
 
 # HistoGram Plots - BarPlot
 def exp_hist(
@@ -503,7 +566,7 @@ def exp_hist(
         facet_kws: Union[Dict,None] = None,
         sp_kws: Union[Dict,None] = None,
         legend_kws: Union[Dict,None] = None,
-        **kwargs):
+        ) -> matplotlib.figure.Figure:
     """
     Bar Plot, Line Plot or resampled kde plot (based on resampling from histogram) of a Tensor type or (types: facted plot) of a single layer or (set of layers: facted plot), for a single training step.
 
@@ -545,7 +608,7 @@ def exp_hist(
 
     """
     
-    
+    # plt.switch_backend('inline')
     if ((type(layer) == list or isinstance(layer,Pattern)) and (type(tt) == list or tt == None)):
         raise FacetException('Cannot Facet or both Tensor Type and layer, one must be a single value')
     
@@ -557,16 +620,11 @@ def exp_hist(
 
     
     _validate_df_hash(df)
-    # Filter rows in DF to those of interest (w.r.t. tt and layer type)
-    facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
-    # query and get the specific step (may need to change this if allowing for faceting on steps)
-    df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
+    
 
     # get the set of logged dtypes
-    l_dtypes = df.metadata.dtype.unique().tolist() if dtype_annotation == True and facet else None
 
 
-    
     plotter = _ExpHistPlotter(
         kind=kind,
         sp_kws=sp_kws,
@@ -574,56 +632,40 @@ def exp_hist(
         xtick_rotation=xtick_rotation,
         dtype_annotation=dtype_annotation,
         dtype_info=dtype_info,
-        # logged_dtypes=l_dtypes,
-        legend_kws = legend_kws
+        facet_kws = facet_kws,
+        legend_kws = legend_kws,
+        col_wrap = col_wrap
     )
+
+    df = plotter._query(
+        df=df,
+        layer=layer,
+        tt=tt, 
+        step=step)
     
 
-
-
-    if facet:
-        # Internal Functions ...
-        def _facet_plot_wrapper(*args,**kwargs):
-            # pass the DF (from)
-            plotter._plot_single(df_ = kwargs['data'], ax= None)
-        g = sns.FacetGrid(
-            df,
-            col=facet,
-            # may move to the height / aspect approach for our api, currently sticking to figsize
-            height=figsize[1],
-            aspect=figsize[0]/figsize[1],
-            col_wrap=col_wrap,
-            **facet_kws # Need to find a solution to place the legend appropriately
+    if plotter.facet:
+        fig = plt.figure(figsize=figsize)
+        
+        plotter._plot_facet(
+            df=df,
+            figure=fig
         )
 
-        g.map_dataframe(_facet_plot_wrapper)
-        # get the exponent column names and sort
-        # l = df.exponent_count.columns.to_list()
-        # l.sort()
-
-        
-        # # Add the legend - Want to overlap this some how.
-        if dtype_annotation:
-            g.add_legend(legend_data=plotter.all_leg_handles,**legend_kws)
-        # g.tight_layout()
-        g.set_titles("{col_var[1]} = '{col_name}'")
-        
         # Overall Plot title
-        if fig_title: g.figure.suptitle(fig_title) 
+        if fig_title: fig.suptitle(fig_title) 
 
-        return g
+        return fig
     
-    # No faceting -> Single plot 
-    # Could just use facet grid for everything?
     else:
-
         # create figure
         fig, ax = plt.subplots(figsize=figsize)
         df_ = plotter._query(df,layer,tt,step)
         # plot figure
         plotter._plot_single(df_=df,ax=ax)
         # Overall plot title ...
-        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')        
+        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')
+
         return fig
 
 
