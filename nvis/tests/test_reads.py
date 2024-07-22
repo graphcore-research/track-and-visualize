@@ -1,7 +1,7 @@
 import pytest
 
-from src.log.common import LogFrame, TensorType, read_pickle, _utils
-from src.log.common._errors import SchemaException
+from ..log.common import LogFrame, TensorType, read_pickle, _utils
+from ..log.common._errors import SchemaException
 # To Do
     # Test for schema validator
     # Test for DataFrame Migration

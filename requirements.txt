@@ -5,3 +5,4 @@ pandas
 seaborn
 pytest
 ml_dtypes
+ipympl

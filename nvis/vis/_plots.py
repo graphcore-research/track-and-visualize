@@ -8,12 +8,12 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 
-from src._transform import _flatten_multi_index  # type: ignore
+from .._transform import _flatten_multi_index  # type: ignore
 from ..log.common import TensorType, _q
 from ._facet import FacetGrid, relplot
 
 from ._errors import FacetException
-from src.log.common._utils import _validate_df_hash
+from ..log.common._utils import _validate_df_hash
 from typing import Any, Callable, Dict, List, Literal, Tuple, Optional, Union, Pattern
 
 

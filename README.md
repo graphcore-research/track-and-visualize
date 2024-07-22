@@ -54,3 +54,10 @@ These columns store the histogram counts for each exponent in the number format.
 
 Currently `+inf` & `-inf` are required. However this will likely change to optional as hardware will clamp overflows to the MRV or 0 (in the case of underflows). The work -around if you're not producing infinites in your logs is to simply add the infinity columns with each entry as zero.
 
+
+## Feedback Format
+
+Issues / Bugs
+Features
+Plot Requests
+Documentation
