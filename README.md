@@ -55,9 +55,39 @@ These columns store the histogram counts for each exponent in the number format.
 Currently `+inf` & `-inf` are required. However this will likely change to optional as hardware will clamp overflows to the MRV or 0 (in the case of underflows). The work -around if you're not producing infinites in your logs is to simply add the infinity columns with each entry as zero.
 
 
-## Feedback Format
+## Feedback
+Any feedback for the tool would be greatly appreciated.
 
-Issues / Bugs
-Features
-Plot Requests
-Documentation
+If providing feedback on the tool could you please provide it in the format below.
+
+Feelfree to add it as a GH issue (https://github.com/graphcore-research/numerics-vis), email me (colmb@graphcore.ai) or message me on slack (@Colm Brandon)
+
+#### What you think of the current State of the tool:
+Please provide a rating for each of the 4 criteria and if you have any additional comments put them below.
+*Options: P (Poor) | NI (Need Improvement) | S (Satisfactory) | VG (Very Good) | E (Excellent)*
+
+| Criteria | Rating |
+| -------- | ------- |
+| Features: | |
+| Functionality:| |
+| Usability: | |
+| Visualisation Quality:| |
+
+
+
+**Additional Comments:**
+
+### Issues / Bugs
+Detail any errors or bugs you encountered here.
+
+
+### Features
+Detail any features you wish to see added to the library (i.e. additional plots, additional inputs for interactive plots, additional interactions with the visualisation, etc..)
+
+
+### Documentation
+Did the documentation make sense? Any areas that need clarifying?
+
+
+
+

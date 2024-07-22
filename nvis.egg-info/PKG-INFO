@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: nvis
+Version: 0.1
+Requires-Dist: torch
+Requires-Dist: matplotlib
+Requires-Dist: numpy<2
+Requires-Dist: pandas
+Requires-Dist: seaborn
+Requires-Dist: pytest
+Requires-Dist: ml_dtypes
+Requires-Dist: ipympl
+Requires-Dist: ipywidgets
+Requires-Dist: fonttools==4.53.0
+Requires-Dist: pure-eval==0.2.2
+Requires-Dist: pytest==8.2.2
+Requires-Dist: sympy==1.12.1
+Requires-Dist: matplotlib==3.9.0
