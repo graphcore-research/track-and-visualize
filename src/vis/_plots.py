@@ -271,7 +271,7 @@ def scalar_global_heatmap(
     return fig
 
 
-class ScalarLinePlotter:
+class _ScalarLinePlotter:
     def __init__(self,kind: str, x: Tuple[Any,Any], scalar_metric: Union[str,List[str]],col_wrap,facet_kws, **kwargs) -> None:
         self.kind = kind
         self.kwargs = {**kwargs}
@@ -325,7 +325,7 @@ class ScalarLinePlotter:
         if self.facet_kws == None:
             self.facet_kws = {'sharey': True, 'sharex': True}
 
-        fig = relplot(
+        g = relplot(
             pd.melt(df,[self.x[1], self.facet[1]]).rename(columns={"variable" : "Metric"}),
             x=self.x[1],
             y='value', 
@@ -337,6 +337,11 @@ class ScalarLinePlotter:
             figure=figure,
             **self.kwargs
         )
+
+        g.figure.legend(loc=self.kwargs.pop('loc','lower center'), 
+                bbox_to_anchor=self.kwargs.pop('bbox_to_anchor',(0.9, 0.7)))
+
+        # print(fig._legend_data)
 
 def scalar_line(
         df: pd.DataFrame,
@@ -379,7 +384,7 @@ def scalar_line(
 
     _validate_df_hash(df)
 
-    plotter = ScalarLinePlotter(kind=kind,
+    plotter = _ScalarLinePlotter(kind=kind,
                                 x=x,
                                 scalar_metric=scalar_metric,
                                 facet_kws=facet_kws,
@@ -391,13 +396,11 @@ def scalar_line(
 
 
     if plotter.facet:
-        print('called')
         fig = plt.figure(figsize=figsize)
         plotter._plot_facet(df=df,figure=fig)
         
     else:
 
-        # plotter = ScalarLinePlotter(kind=kind,x=x,scalar_metric=scalar_metric)
         fig, ax = plt.subplots(figsize=figsize)
         plotter._plot_single(df=df,ax=ax)
 
@@ -524,7 +527,6 @@ class _ExpHistPlotter:
             # pass the DF (from)
             self._plot_single(df_ = kwargs['data'], ax= None)
 
-        print(f"COL WRAP: {self.kwargs}")
 
         g = FacetGrid(
             df,

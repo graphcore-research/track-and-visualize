@@ -1,6 +1,6 @@
 import itertools
 from ipywidgets import widgets
-from typing import Dict, Callable
+from typing import Dict, Callable, List, Union
 import matplotlib.figure
 import pandas as pd
 import traitlets
@@ -8,7 +8,7 @@ import matplotlib
 from functools import partial
 
 from ..log.common import TensorType
-from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter
+from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
 
 from IPython import display
 import matplotlib.pyplot as plt 
@@ -37,7 +37,6 @@ class WidgetHolder:
 
             
         def _f(self,*args,**kwargs):
-            
             # so it only updates on the final point (for dropdown)
             if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel:
 
@@ -46,11 +45,14 @@ class WidgetHolder:
                         self._redraw()
                     ...
                 if isinstance(args[0]['owner'], widgets.widget_tagsinput.TagsInput):
-                    # print('EVENT:',args[0])
+                    self._redraw()
+                
+                if isinstance(args[0]['owner'],widgets.widget_selection.SelectMultiple):
                     self._redraw()
 
+
             else:
-                # print(args,kwargs)
+                
                 ...
                 
 
@@ -176,8 +178,40 @@ def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scala
     fig.canvas.draw_idle()
 
 
-def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame):
-    ...
+def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str, tt: TensorType, scalar_metric: Union[str, List[str]], **kwargs):
+    # clear figure
+    fig.clear()
+
+
+    plotter = _ScalarLinePlotter(kind=kwargs.pop('kind','line'),
+                                x = kwargs.pop('x', ('metadata', 'step')),
+                                scalar_metric=scalar_metric,
+                                facet_kws=kwargs.pop('facet_kws', {}),
+                                col_wrap = kwargs.pop('col_wrap', None),
+                                **kwargs)
+    
+    _df = plotter._query(df=df,
+                         layer=layer,
+                         tt=tt
+                         )
+
+    if plotter.facet:
+        with plt.ioff():
+            plotter._plot_facet(
+            df=_df,
+            figure=fig
+            )
+
+            
+    else:
+        # create new axes
+        new_ax = fig.gca()
+        with plt.ioff():
+            plotter._plot_single(_df,new_ax)
+
+            fig.suptitle(f'Layer: {layer}, TT: {tt}')
+    fig.canvas.draw_idle()
+    
 
 
 def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
@@ -306,7 +340,7 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
     elif f.__name__ == 'exp_hist':
         cid = fig.figure.canvas.mpl_connect('button_press_event', eh_onclick)
 
-
+        # Need to add support for 
         WH = WidgetHolder(parent=TOOLBAR,
                           kind = widgets.Dropdown(options=['bar','kde','line'], value='bar'),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.grad.unique().tolist(), value=kwargs['tt']),
@@ -322,7 +356,21 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
 
         # raise NotImplementedError(f'{f.__name__} is not currently supported')
     elif f.__name__ == 'scalar_line':
-        raise NotImplementedError(f'{f.__name__} is not currently supported')
+        cid = fig.figure.canvas.mpl_connect('button_press_event', sl_onclick)
+
+        WH = WidgetHolder(parent=TOOLBAR,
+                          kind = widgets.Dropdown(options=['line','scatter'], value=kwargs.get('kind','line')),
+                          tt=widgets.Dropdown(options=kwargs['df'].metadata.grad.unique().tolist(), value=kwargs['tt']),
+                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)),
+                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].general_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) )
+                          )
+
+
+        WH.observe()
+        WH.set_current_redraw_function(_scalar_line_redraw, fig=fig.figure, **kwargs)
+        WH.display()
+
+        # raise NotImplementedError(f'{f.__name__} is not currently supported')
     else:
         raise Exception(f'{f.__name__} is not a valid vis function')
         

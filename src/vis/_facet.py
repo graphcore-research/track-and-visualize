@@ -134,7 +134,6 @@ class FacetGrid(Grid):
                           sharex=sharex, sharey=sharey,
                           subplot_kw=subplot_kws,
                           gridspec_kw=gridspec_kws)
-            print(kwargs)
             axes = fig.subplots(nrow, ncol, **kwargs)
 
             if col is None and row is None:
@@ -146,7 +145,6 @@ class FacetGrid(Grid):
             else:
                 facet_product = product(row_names, col_names)
                 axes_dict = dict(zip(facet_product, axes.flat))
-            print(fig.get_figwidth())
         else:
 
             # If wrapping the col variable we need to make the grid ourselves
@@ -164,7 +162,6 @@ class FacetGrid(Grid):
                 axes[i] = fig.add_subplot(nrow, ncol, i + 1, **subplot_kws)
 
             axes_dict = dict(zip(col_names, axes))
-            print(axes_dict)
 
         # --- Set up the class attributes
 
@@ -225,7 +222,6 @@ class FacetGrid(Grid):
                 ax.yaxis.offsetText.set_visible(False)
                 ax.yaxis.label.set_visible(False)
         
-        print(fig.get_figwidth())
 
     # __init__.__doc__ = dedent("""\
     #     Initialize the matplotlib figure and FacetGrid object.
@@ -509,7 +505,6 @@ class FacetGrid(Grid):
         for i, val in enumerate(args[:2]):
             axis_labels[i] = val
         self._finalize_grid(axis_labels)
-        print(self._figure.get_figwidth())
         return self
 
     def _facet_color(self, hue_index, kw_color):
@@ -1032,11 +1027,11 @@ def relplot(
         elif kind == "line":
             attrs["size"] = "linewidth"
         p.add_legend_data(g.axes.flat[0], legend_artist, common_kws, attrs)
-        if p.legend_data:
-            g.add_legend(legend_data=p.legend_data,
-                         label_order=p.legend_order,
-                         title=p.legend_title,
-                         adjust_subtitles=True)
+        # if p.legend_data:
+        #     g.add_legend(legend_data=p.legend_data,
+        #                  label_order=p.legend_order,
+        #                  title=p.legend_title,
+        #                  adjust_subtitles=True)
 
     # Rename the columns of the FacetGrid's `data` attribute
     # to match the original column names
