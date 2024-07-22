@@ -504,7 +504,7 @@ class _ExpHistPlotter:
                 dtype_info=self.dtype_info
                 )
                 # legend location -> outter fn argument?
-            ax.legend(**self.legend_kws)
+            
 
             # if metadata dtype is being plotted, different dtypes will use the same colour, need to fix this
             if fp:
@@ -514,6 +514,8 @@ class _ExpHistPlotter:
                 for hk,ha in zip(han_keys,han_artists):
                     if hk not in self.all_leg_handles.keys():
                         self.all_leg_handles[hk] = ha
+            else:
+                ax.legend(**self.legend_kws)
 
     def _plot_facet(self, df: pd.DataFrame, figure: matplotlib.figure.Figure = None):
 
@@ -521,6 +523,8 @@ class _ExpHistPlotter:
         def _facet_plot_wrapper(*args,**kwargs):
             # pass the DF (from)
             self._plot_single(df_ = kwargs['data'], ax= None)
+
+        print(f"COL WRAP: {self.kwargs}")
 
         g = FacetGrid(
             df,
@@ -532,20 +536,24 @@ class _ExpHistPlotter:
             )
         
         g = g.map_dataframe(_facet_plot_wrapper)
-        # get the exponent column names and sort
-        # l = df.exponent_count.columns.to_list()
-        # l.sort()
-        
-        print(g.figure.get_figwidth())
         
         # # Add the legend - Want to overlap this some how.
-        print(self.legend_kws, self.all_leg_handles)
-        # if self.dtype_annotation:
-            # g.add_legend(legend_data=self.all_leg_handles,**self.legend_kws)
-        print(g.figure.get_figwidth())
+        # print(self.legend_kws, self.all_leg_handles)
+        # TO DO: 
+            # Add Legend 
+
+        if self.dtype_annotation:
+            # create legend
+            self.legend = g.figure.legend(
+                list(self.all_leg_handles.values()),
+                list(self.all_leg_handles.keys()),
+                loc=self.legend_kws.pop('loc','lower center'), 
+                bbox_to_anchor=self.legend_kws.pop('bbox_to_anchor',(0.9, 0.9)),
+                **self.legend_kws)
+            
         g.tight_layout()
         g.set_titles("{col_var[1]} = '{col_name}'")
-        print(g.figure.get_figwidth())
+        # print(g.figure.get_figwidth())
         ...
 
 

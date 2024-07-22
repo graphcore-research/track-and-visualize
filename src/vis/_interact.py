@@ -33,7 +33,6 @@ class WidgetHolder:
                         self.redraw_fn_args[k] = v.value[0]
                     else:
                         self.redraw_fn_args[k] = v.value
-
                 self.redraw_fn(**self.redraw_fn_args)
 
             
@@ -111,7 +110,6 @@ class WidgetHolder:
 
 def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str, tt: TensorType, step: int, **kwargs):
 
-    print(layer,tt,step,kwargs)
     # clear all axes from the figure
     fig.clear()
     
@@ -125,13 +123,13 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
                     xtick_rotation=kwargs.pop('xtick_rotation',45),
                     dtype_annotation=kwargs.pop('dtype_annotation',True),
                     dtype_info=kwargs.pop('dtype_info',(True,True,True)),
-                    legend_kws = kwargs.pop('legend_kws',dict(fontsize=10,loc='upper right'))
+                    legend_kws = kwargs.pop('legend_kws',dict(fontsize=10,loc='upper right')),
+                    **kwargs
                 )
     
 
 
     _df = plotter._query(df,layer,tt, step)
-    print(plotter.facet)
     if plotter.facet:
         with plt.ioff():
             plotter._plot_facet(
@@ -146,9 +144,9 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
     # X-axis isn't functioning correctly
         fig.suptitle(f'Layer: {layer}, Step: {step}, TT: {tt}')
     fig.canvas.draw_idle()
-    print(fig.dpi, fig.get_figwidth())
+
     
-    # print(fig.dpi,fig.get_figwidth())
+
 
 
 def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scalar_metric: str, tt: TensorType, inc: int,  **kwargs):
@@ -196,8 +194,9 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
     # Accessible with-in the function scope
     WH = None
     
-
+    ###########################################################################################################################
     # Onclick Event Handler for ScalarGlobalHeatmap
+    ###########################################################################################################################
     def sgh_onclick(event: matplotlib.backend_bases.MouseEvent):
         nonlocal stack_num # for tracking plot state
         nonlocal APP
@@ -252,15 +251,21 @@ def interact_vis(f: Callable,width=1500 ,**kwargs) -> None:
             drf(**drargs)
                 
             WH.nuke()
-            WH.set_current_redraw_function(drf, **drargs)
+            WH.set_current_redraw_function(drf, **drargs) # need to include the kwargs in here ..
             WH.rebuild(
                     scalar_metric = widgets.Dropdown(options=kwargs['df'].general_stats.columns.tolist() , value=SCALAR_METRIC),
                     tt = widgets.Dropdown(options=kwargs['df'].metadata.grad.unique().tolist(), value=TT, description='Number:')
             )
+    
+    ###########################################################################################################################
     # Onclick Event Handler for Exponent Hist
+    ###########################################################################################################################
     def eh_onclick(event: matplotlib.backend_bases.MouseEvent):
         ...
 
+    ###########################################################################################################################
+    # Onclick Event Handler for Global Scalar Line
+    ###########################################################################################################################
     def sl_onclick(event: matplotlib.backend_bases.MouseEvent):
         ...
 
