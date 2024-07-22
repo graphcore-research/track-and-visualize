@@ -33,7 +33,7 @@ The `"metadata"` top-level contains the non-data dependent information about the
 | type* | `("metadata","type")` | What module from the DL framework (e.g. torch) is tensor from  | `str` |
 | tensor_type | `("metadata","tensor_type")` | What type of data is in the tensor (i.e. Pre-Activation, Gradient, Weight, Optimiser State ) | `Literal["Activation","Gradient", "Weight","Optimiser_State"]` |
 | step | `("metadata","step")` | The training step at which the tensor was logged | `int` |
-| dtype | `("metadata","dtype")` | The dtype of the logged tensor | `str` | 
+| dtype | `("metadata","dtype")` | The dtype of the logged tensor (`str` must be parseable by `ml_dtypes.finfo`) | `str` | 
 
 **\*** denotes optional. We currently don't have any functionally which depends on the module type.
 
