@@ -4,20 +4,73 @@
 
 Repo for working on numerics-vis
 
-## Installation
-
-From the root directory of the repository, run:
+### Installation
+```
+pip install git+https://github.com/graphcore-research/numerics-vis.git@interactive-exploration
 ```
 
-python3 -m venv .venv
 
-echo "export PYTHONPATH=\${PYTHONPATH}:\$(dirname \${VIRTUAL_ENV})/src:\$(dirname \${VIRTUAL_ENV})/experiments/Transformer:\$(dirname \${VIRTUAL_ENV})/experiments/Transformer/training" >> .venv/bin/activate
+### Usage
+```python
+# Imports
+from nvis import vis
+from nvis.log.common import read_pickle
 
-source .venv/bin/activate
+# load data
+df = read_pickle('path/to/example-logs.pkl') 
+#If the data doesn't conform to the schema this will raise an Exception
 
-pip install -r requirements.txt
+# Generate Visualation
+fig = vis.exp_hist(
+    df=df,
+    layer='output',
+    tt='Activation',
+    step=100
+)
+
 ```
 
+#### Interactive
+Interactive versions of each plot can be achieved by passing the vis function and the relevent kwargs to the interactive function.
+
+```python
+# Pass the plotting function into the interactive function with the required kwargs (for the plotting function) along with any others you need to create the interactive plot.
+vis.interactive(
+    f= vis.scalar_line,
+    df=df,
+    tt='Activation',
+    layer='output',
+    col_wrap = 3,
+    scalar_metric=['rm2','min_abs']
+)
+```
+![Interactive Scalar Line](/assets/scalar_line.gif)
+
+```python
+vis.interactive(
+    f= vis.scalar_global_heatmap,
+    df=df,
+    tt='Activation',
+    col_wrap = 3,
+    scalar_metric='rm2',
+    inc=50
+)
+```
+![Scalar Global Heatmap](/assets/global_scalar_heatmap.gif)
+
+```python
+vis.interactive(
+    f=vis.exp_hist,
+    df=df,
+    layer='output',
+    tt='Activation',
+    step=100,
+    col_wrap =3
+
+)
+```
+
+![Exponent Histogram](/assets/exponent_hist.gif)
 
 
 ## Required Log Schema
@@ -35,7 +88,7 @@ The `"metadata"` top-level contains the non-data dependent information about the
 | step | `("metadata","step")` | The training step at which the tensor was logged | `int` |
 | dtype | `("metadata","dtype")` | The dtype of the logged tensor (`str` must be parseable by `ml_dtypes.finfo`) | `str` | 
 
-**\*** denotes optional. We currently don't have any functionally which depends on the module type.
+**\*** We currently don't have any functionally which depends on the module type. It is required by the schema, but if you're not logging that data, the column can be filled with empty strings.
 
 ### Scalar Stats
 The `"scalar_stats"` top-level contains all the scalar statistics logged to summarise the data contained with-in the tensors.
