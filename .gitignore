@@ -3,3 +3,5 @@ test-data/*
 .vscode
 *.pyc
 *.pkl
+.DS_Store
+*.egg-info
