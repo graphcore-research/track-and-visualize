@@ -215,20 +215,24 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
 
 
 def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
-    # change backend
-    plt.switch_backend('ipympl')
-
-    # could make this general with the plot function passed in (and check which it is, etc...)
     """
         This function makes the visualisation interactive in a jupyter notebook.
 
-        ``
-
+        
+        Args:
         f (Callable) : The plotting function you wish to make interactive
         width (float) : The value in pixels for how wide you wish the visualisation to be.
         kwargs: The arguments for provided vis function f 
+
+        Returns:
+        None
     
     """
+    # change backend
+    plt.switch_backend('ipympl')
+
+
+    
     # Accessible with-in the function scope
     WH = None
     
