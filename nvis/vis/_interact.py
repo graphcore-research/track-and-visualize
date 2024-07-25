@@ -391,6 +391,6 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
     # APP.append_display_data(TOOLBAR)
     APP.append_display_data(fig.canvas)
 
-
+    plt.show(fig)
     
     display.display(TOOLBAR,APP)
