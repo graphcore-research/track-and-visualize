@@ -1,4 +1,6 @@
+from enum import Enum
 import itertools
+import sys
 from ipywidgets import widgets
 from typing import Dict, Callable, List, Union
 import matplotlib.figure
@@ -12,6 +14,21 @@ from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
 
 from IPython import display
 import matplotlib.pyplot as plt 
+
+class NotebookType(str,Enum):
+    colab = 'colab'
+    vscode = 'vscode'
+    any = 'any'
+
+# What NB front-end
+if 'google.colab' in sys.modules:
+    NB = NotebookType.colab
+elif 'vscode' in sys.modules:
+    NB = NotebookType.vscode
+else:
+    NB = NotebookType.any
+
+
 
 class WidgetHolder:
         
@@ -29,10 +46,14 @@ class WidgetHolder:
         def _redraw(self):
             # overwrite redraw_fn args
                 for k,v in self.widgets.items():
-                    if type(v.value) == list and len(v.value) == 1:
+                    if (type(v.value) == list or type(v.value) == tuple) and len(v.value) == 1:
                         self.redraw_fn_args[k] = v.value[0]
                     else:
-                        self.redraw_fn_args[k] = v.value
+                        # handling select multiple
+                        if type(v.value) == tuple:
+                            self.redraw_fn_args[k] = list(v.value)
+                        else:
+                            self.redraw_fn_args[k] = v.value
                 self.redraw_fn(**self.redraw_fn_args)
 
             
@@ -353,8 +374,8 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
         WH = WidgetHolder(parent=TOOLBAR,
                           kind = widgets.Dropdown(options=['bar','kde','line'], value='bar'),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']),
-                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)),
-                          step = widgets.Dropdown(options=kwargs['df'].metadata.step.unique().tolist(), value = kwargs['step'])
+                          step = widgets.Dropdown(options=kwargs['df'].metadata.step.unique().tolist(), value = kwargs['step']),
+                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)) if NB != NotebookType.colab else widgets.SelectMultiple(options=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],))
                           )
     
         WH.observe()
@@ -370,8 +391,8 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
         WH = WidgetHolder(parent=TOOLBAR,
                           kind = widgets.Dropdown(options=['line','scatter'], value=kwargs.get('kind','line')),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']),
-                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)),
-                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].general_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) )
+                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].general_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) ),
+                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)) if NB != NotebookType.colab else widgets.SelectMultiple(options=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],))
                           )
 
 
@@ -390,7 +411,9 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
     # APP.append_display_data(TOOLBAR)
     # APP.append_display_data(TOOLBAR)
     APP.append_display_data(fig.canvas)
-
-    plt.show(fig)
     
     display.display(TOOLBAR,APP)
+
+    if NB == NotebookType.colab:
+        plt.show()
+        fig.canvas.resizable = False
