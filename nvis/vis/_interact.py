@@ -44,16 +44,22 @@ class WidgetHolder:
             )
 
         def _redraw(self):
-            # overwrite redraw_fn args
-                for k,v in self.widgets.items():
-                    if (type(v.value) == list or type(v.value) == tuple) and len(v.value) == 1:
-                        self.redraw_fn_args[k] = v.value[0]
+            redraw = True
+        # overwrite redraw_fn args
+            for k,v in self.widgets.items():
+                if (type(v.value) == list or type(v.value) == tuple) and len(v.value) <= 1:
+                    # fixing bug doug identified
+                    if len(v.value) == 0:
+                        redraw = False
                     else:
-                        # handling select multiple
-                        if type(v.value) == tuple:
-                            self.redraw_fn_args[k] = list(v.value)
-                        else:
-                            self.redraw_fn_args[k] = v.value
+                        self.redraw_fn_args[k] = v.value[0]
+                else:
+                    # handling select multiple
+                    if type(v.value) == tuple:
+                        self.redraw_fn_args[k] = list(v.value)
+                    else:
+                        self.redraw_fn_args[k] = v.value
+            if redraw:
                 self.redraw_fn(**self.redraw_fn_args)
 
             
