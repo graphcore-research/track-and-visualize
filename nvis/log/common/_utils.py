@@ -19,8 +19,10 @@ def _get_df_schema_hash(df: pd.DataFrame):
     return hashlib.sha256(df.dtypes.__str__().encode()).hexdigest()
 
 def _validate_df_hash(df: pd.DataFrame):
+    if 'vis-meta' not in df.attrs.keys():
+        raise SchemaException('The DataFrame schema has not been validated, please load the DataFrame using one of built-in read functions in the library, or call the validate fn on the existign DF')
     if not df.attrs['vis-meta']['hash'] == _get_df_schema_hash(df):
-        raise SchemaException()
+        raise SchemaException('The configuration of the DataFrame structure has changed since the file was loaded, please re-validate the DF before passing it into the vis function')
 
 
 
