@@ -322,7 +322,7 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
             WH.nuke()
             WH.set_current_redraw_function(drf, **drargs) # need to include the kwargs in here ..
             WH.rebuild(
-                    scalar_metric = widgets.Dropdown(options=kwargs['df'].general_stats.columns.tolist() , value=SCALAR_METRIC),
+                    scalar_metric = widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=SCALAR_METRIC),
                     tt = widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=TT, description='Number:')
             )
     
@@ -367,7 +367,7 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
 
         # FN specific 
         WH = WidgetHolder(parent=TOOLBAR,
-                          scalar_metric=widgets.Dropdown(options=kwargs['df'].general_stats.columns.tolist() , value=kwargs['scalar_metric']),
+                          scalar_metric=widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=kwargs['scalar_metric']),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']))
         WH.observe()
         WH.set_current_redraw_function(_global_scalar_redraw, fig=fig.figure, **kwargs)
@@ -397,7 +397,7 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
         WH = WidgetHolder(parent=TOOLBAR,
                           kind = widgets.Dropdown(options=['line','scatter'], value=kwargs.get('kind','line')),
                           tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']),
-                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].general_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) ),
+                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].scalar_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) ),
                           layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)) if NB != NotebookType.colab else widgets.SelectMultiple(options=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],))
                           )
 

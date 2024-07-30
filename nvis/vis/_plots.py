@@ -283,7 +283,7 @@ class _ScalarLinePlotter:
     def _query(self, df: pd.DataFrame, layer: str, tt: TensorType) -> pd.DataFrame:
         self.facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
         # handling scalar metric input -> should check that the provided metric is in the DF?
-        self.scalar_metric = list(df.general_stats.columns) if self.scalar_metric == None else self.scalar_metric
+        self.scalar_metric = list(df.scalar_stats.columns) if self.scalar_metric == None else self.scalar_metric
         df = df.query(query)
         
         # columns to use from the provided DF
@@ -443,7 +443,7 @@ class _ExpHistPlotter:
     def _plot_single(self,df_, ax: Union[matplotlib.axes.Axes, None]):   
         # normalize, convert to long format & sort ascending
         fp = False
-        _df = pd.melt(df_.exponent_count.div(df_.exponent_count.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
+        _df = pd.melt(df_.exponent_counts.div(df_.exponent_counts.sum(axis=1), axis=0)).rename(columns={'variable':'Exponent'}).sort_values('Exponent')
         # when using seaborn facet grid
         if ax == None:
             # internally sns fg sets the current axis -> therefore retrieve it

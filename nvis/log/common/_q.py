@@ -5,11 +5,11 @@ from typing import Tuple
 
 def _exp(c: int | float) -> Tuple[str, int | float]:
     # if float check if +/- infinity
-    return ('exponent_count', c)
+    return ('exponent_counts', c)
 
 
 def _scalar(s: str) -> Tuple[str, str]:
-    return ('general_stats', s)
+    return ('scalar_stats', s)
 
 
 NAME = ('metadata', 'name')
