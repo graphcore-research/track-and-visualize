@@ -1,0 +1,1 @@
+# Adapters for Jax logging - to be implemented
