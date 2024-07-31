@@ -143,4 +143,18 @@ Did the documentation make sense? Any areas that need clarifying?
 
 
 
+### Notes on Different Jupyter Front-Ends
+#### VS-Code
+When installing `nvis` for the first time on VS-Code, you may get a Javascript error in the notebook, if this occurs simply exit VS-Code and start it again, then the error should resolved.
 
+#### Google Colab
+After installing `nvis` on colab, you may need to restart the Jupyter session, as colab may not immediately have access to the `matplotlib` backend.
+
+Also `nvis` depends on `ipympl`. To use it with a colab notebook you need to call:
+
+```python
+from google.colab import output
+output.enable_custom_widget_manager()
+```
+
+before executing any `nvis` functions.  
