@@ -300,7 +300,6 @@ __all__ = [
     "StashValueFn",
     "rmap_tensor",
     "default_stash_value",
-    "default_stash",
     "get_stash_fn",
     "Tracker",
     "track",
