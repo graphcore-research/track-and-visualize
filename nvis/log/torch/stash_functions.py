@@ -1,7 +1,9 @@
 from typing import Dict
 import torch
 
-def exp_histogram(t: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,torch.Tensor]:
+from .core import StashValueFn,Stash,Event
+
+def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,torch.Tensor]:
     """
     Gets the exponent histogram for the tensor, any thing over/under max_exp/min_exp will be set to +/-inf
 
@@ -14,7 +16,8 @@ def exp_histogram(t: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,torch.Te
         Dict : A dictionary of the containing the tensors for histogram counts & bin edges
 
     """
-    e = torch.frexp(t).exponent.flatten()
+    tensor = tensor.detach()
+    e = torch.frexp(tensor).exponent.flatten()
     # Values exceeding upper and lower exps hit overflow bins
     e = torch.where(e < min_exp, (min_exp - 1) * torch.ones_like(e), e)
     e = torch.where(e > max_exp, (max_exp + 1) * torch.ones_like(e), e)
@@ -54,3 +57,20 @@ def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
             "rm8": tensor.div(rm2).pow_(8).mean().pow(1 / 8).mul(rm2).cpu(),
                 
             }
+
+# Should refactor this slightly - as exponent hist is always a nested dict, yet scalar_stats is not (and there's no reason for this behaviour)
+
+def stash_hist(tensor: torch.Tensor) -> Dict:
+    return {'exp_hist': exp_histogram(tensor)}
+
+def stash_all_stats_and_hist(tensor: torch.Tensor) -> Dict:
+    
+    return {
+        'scalar_stats' : stash_scalar_stats(tensor=tensor),
+        'exp_hist' : exp_histogram(tensor=tensor)
+    }
+
+
+def stash_full_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    return tensor.detach().cpu().clone()
+

@@ -55,27 +55,33 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Literal
 )
 
 import torch.utils.hooks
 from torch import Tensor, nn
+from copy import deepcopy
+
+from stash_functions import stash_full_tensor
+
+TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
 
 
 @dataclass
 class Event:
     name: str
     type: Type[nn.Module]
-    grad: bool
+    tensor_type: TT
     value: Any
     args: Tuple[Any, ...]
     kwargs: Dict[str, Any]
-
 
 @dataclass
 class Stash:
     name: str
     type: Type[nn.Module]
-    grad: bool
+    tensor_type: TT
+    dtype: torch.dtype
     value: Any  # output(s) or grad_output(s)
 
     @property
@@ -88,6 +94,7 @@ class Stash:
         return _value(self.value)
 
 
+
 StashFn = Callable[[Event], Stash]
 StashValueFn = Callable[[Tensor], Any]
 
@@ -97,20 +104,23 @@ def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
         return type(value)(rmap_tensor(a, fn) for a in value)
     if isinstance(value, dict):
         return {rmap_tensor(k, fn): rmap_tensor(a, fn) for k, a in value.items()}
-    if dataclasses.is_dataclass(value):
-        return type(value)(**{k: rmap_tensor(v, fn) for k, v in value.__dict__.items()})
+    # if dataclasses.is_dataclass(value): TORCH COMPILE DOES NOT LIKE THIS
+    #     return type(value)(**{k: rmap_tensor(v, fn) for k, v in value.__dict__.items()})
     if isinstance(value, Tensor):
         return fn(value)
     return value
 
 
-def default_stash_value(tensor: Tensor) -> Tensor:
-    return tensor.detach().cpu().clone()
-
+def tensor_dtype(tensor: torch.Tensor) -> torch.dtype:
+    return tensor.dtype
 
 def default_stash(event: Event, stash_value: StashValueFn) -> Stash:
     return Stash(
-        event.name, event.type, event.grad, rmap_tensor(event.value, stash_value)
+        name=event.name, 
+        type=event.type, 
+        tensor_type=event.tensor_type,
+        dtype=rmap_tensor(event.value, tensor_dtype),
+        value=rmap_tensor(event.value, stash_value)
     )
 
 
@@ -121,7 +131,7 @@ def get_stash_fn(
         raise ValueError("Cannot provide StashValueFn and StashFn to get_stash_fn()")
     if stash:
         return stash
-    return partial(default_stash, stash_value=stash_value or default_stash_value)
+    return partial(default_stash, stash_value=stash_value or stash_full_tensor)
 
 
 NamePattern = Union[None, Pattern[str], str]
@@ -132,6 +142,9 @@ class Tracker:
         self.stashes: List[Stash] = []
         self._handles: List[torch.utils.hooks.RemovableHandle] = []
         self._stash = stash
+        self._model = None
+        self._step = 0
+        self._global_stash = {}
 
     # Registration/tracking
 
@@ -191,13 +204,16 @@ class Tracker:
         *,
         name: str,
     ) -> None:
+        # Check if this fixes bwd pass
         self.stashes.append(
-            self._stash(Event(name, type(module), False, output, args, kwargs))
+            self._stash(Event(name, None, 'Activation ', output, (), {}))
         )
+
+        # exp_histogram(output)
 
     def _backward_hook(self, module: nn.Module, grad_output: Any, *, name: str) -> None:
         self.stashes.append(
-            self._stash(Event(name, type(module), True, grad_output, (), {}))
+            self._stash(Event(name, None, 'Gradient', grad_output, (), {}))
         )
 
     # Read results
@@ -214,38 +230,64 @@ class Tracker:
     def __len__(self) -> int:
         return len(self.stashes)
 
-    def to_frame(
-        self,
-        stat: Callable[[Tensor], Tensor] = torch.std,
-        stat_name: Optional[str] = None,
-    ) -> "pandas.DataFrame":  # type:ignore[name-defined] # NOQA: F821
-        import pandas
+    def _optim_step_hook(self,optimizer: torch.optim.Optimizer, *args, **kwargs):
+        for pn, state in zip(kwargs.get('p_names'),optimizer.state_dict()['state'].values()):
+            
+            for k,v in state.items():
+                if k != 'step':
+                    self.stashes.append(self._stash(Event(pn.removesuffix('.weight'),None,f'Optimiser_State.{k}',v,(),{})))
 
-        column_name = (
-            getattr(stat, "__name__", "value") if stat_name is None else stat_name
-        )
+    def register_optimiser(self,optimizer: torch.optim.Optimizer, param_names: List[str]) -> None:
 
-        def to_item(stash: Stash) -> Dict[str, Any]:
-            d = stash.__dict__.copy()
-            d.pop("value")
-            v = stash.first_value
-            d[column_name] = stat(v).item() if isinstance(v, Tensor) else None
-            d["type"] = f"{stash.type.__module__}.{stash.type.__name__}"
-            return d
+        self._handles.append(optimizer.register_step_pre_hook(partial(self._optim_step_hook,p_names=param_names)))
+    
+    def register_weights(self,model: nn.Module):
+        self._model = model
 
-        return pandas.DataFrame.from_dict(map(to_item, self))  # type:ignore[arg-type]
+    def evict_stash(self):
+        self.stashes = []
 
 
+    def offload_global_stash(self):
+        # unimplemented as of yet, but where the stashes are converted to DF/Dict and offloaded to disk or sent to wandb
+        ...
+
+
+    def move_to_global_stash(self):
+        self._global_stash[self._step] = deepcopy(self.stashes)
+
+
+    def step(self, call_item = True):
+        # write stats to file?
+        # clear stashes
+        if self._model:
+            for name,params in self._model.named_parameters():
+                self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,f'Weights',params.data,(),{})))
+
+        # (so should offload logs to file over wandb?)
+        self.move_to_global_stash()
+        # need to clear stashes at the end of every iteration (to keep torch compile happy as the hooks depend on it)
+        self.evict_stash()
+        # increment step
+        self._step += 1
+
+            
 def track(
     module: nn.Module,
     grad: bool = True,
+    optimiser: torch.optim.Optimizer = None,
+    track_weights: bool = True,
     include: NamePattern = None,
     exclude: NamePattern = None,
     stash_value: Optional[StashValueFn] = None,
-    stash: Optional[StashFn] = None,
-) -> Tracker:
+    stash: Optional[StashFn] = None,) -> Tracker:
+
     tracker = Tracker(get_stash_fn(stash_value=stash_value, stash=stash))
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
+    if optimiser:
+        tracker.register_optimiser(optimiser, param_names = [m for m,p in module.named_parameters()])
+    if track_weights:
+        tracker.register_weights(model=module)
     return tracker
 
 
