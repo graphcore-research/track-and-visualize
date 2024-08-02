@@ -5,4 +5,3 @@ sentencepiece
 torch
 tqdm
 wandb
-tensor_tracker @ git+https://github.com/graphcore-research/pytorch-tensor-tracker

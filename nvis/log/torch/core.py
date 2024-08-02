@@ -62,7 +62,7 @@ import torch.utils.hooks
 from torch import Tensor, nn
 from copy import deepcopy
 
-from stash_functions import stash_full_tensor
+from .stash_functions import stash_full_tensor
 
 TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
 
@@ -257,7 +257,7 @@ class Tracker:
         self._global_stash[self._step] = deepcopy(self.stashes)
 
 
-    def step(self, call_item = True):
+    def step(self):
         # write stats to file?
         # clear stashes
         if self._model:
@@ -280,7 +280,12 @@ def track(
     include: NamePattern = None,
     exclude: NamePattern = None,
     stash_value: Optional[StashValueFn] = None,
-    stash: Optional[StashFn] = None,) -> Tracker:
+    stash: Optional[StashFn] = None,
+    use_wandb: bool = False,
+    wandb_kws: Optional[Dict] = None
+    ) -> Tracker:
+
+    assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
 
     tracker = Tracker(get_stash_fn(stash_value=stash_value, stash=stash))
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
@@ -299,7 +304,6 @@ __all__ = [
     "StashFn",
     "StashValueFn",
     "rmap_tensor",
-    "default_stash_value",
     "get_stash_fn",
     "Tracker",
     "track",

@@ -7,3 +7,4 @@ test-data/*
 *.egg-info
 dist/
 build/
+torch_compile_debug

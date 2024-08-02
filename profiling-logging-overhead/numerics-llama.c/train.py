@@ -34,18 +34,23 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from tinystories import Task
 from export import model_export
-
-
-
 import logging
+import sys
+
+# add local lib to sys path for relative import
+module_path = os.path.abspath(os.path.join('../..'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
+
 
 from torch.profiler import profile, record_function, ProfilerActivity
 from torch.profiler import schedule
-from ...nvis.log.torch.stash_functions import (stash_full_tensor, stash_scalar_stats, stash_hist ,stash_all_stats_and_hist)
-from ...nvis.log.torch.core import track
+from nvis.log.torch import (stash_full_tensor, stash_scalar_stats, stash_hist ,stash_all_stats_and_hist)
+from nvis.log.torch import track
 
 # from my_logger import track
-stash_values = [stash_scalar_stats,stash_hist,stash_all_stats_and_hist]
+stash_values = [stash_full_tensor,stash_scalar_stats,stash_hist,stash_all_stats_and_hist]
 
 all_perms = [
     tuple(['activations']),
@@ -57,8 +62,8 @@ all_perms = [
 import pickle
 
 from torch._dynamo.utils import CompileProfiler
-
-for baseline in [False]:
+results = {}
+for baseline in [True,False]:
     for compile in [True,False]:
         for svf in stash_values:
             for which_to_track in all_perms:
@@ -92,7 +97,7 @@ for baseline in [False]:
                 gradient_accumulation_steps = 1  # used to simulate larger batch sizes
                 learning_rate = 1e-4  # max learning rate
                 max_iters = 10  # total number of training iterations
-                weight_decay = 1e-1
+                weight_decay = 0
                 beta1 = 0.9
                 beta2 = 0.95
                 grad_clip = 1.0  # clip gradients at this value, or disable if == 0.0
@@ -252,17 +257,18 @@ for baseline in [False]:
 
                 # learning rate decay scheduler (cosine with warmup)
                 def get_lr(it):
-                    # 1) linear warmup for warmup_iters steps
-                    if it < warmup_iters:
-                        return learning_rate * it / warmup_iters
-                    # 2) if it > lr_decay_iters, return min learning rate
-                    if it > lr_decay_iters:
-                        return min_lr
-                    # 3) in between, use cosine decay down to min learning rate
-                    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
-                    assert 0 <= decay_ratio <= 1
-                    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
-                    return min_lr + coeff * (learning_rate - min_lr)
+                    # # 1) linear warmup for warmup_iters steps
+                    # if it < warmup_iters:
+                    #     return learning_rate * it / warmup_iters
+                    # # 2) if it > lr_decay_iters, return min learning rate
+                    # if it > lr_decay_iters:
+                    #     return min_lr
+                    # # 3) in between, use cosine decay down to min learning rate
+                    # decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
+                    # assert 0 <= decay_ratio <= 1
+                    # coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
+                    # return min_lr + coeff * (learning_rate - min_lr)
+                    return learning_rate
 
                 # logging
                 if wandb_log and master_process:
@@ -307,68 +313,90 @@ for baseline in [False]:
                         optimiser=optimizer if 'opt_state' in which_to_track else None,
                         track_weights=True if 'weights' in which_to_track else False,
                         stash_value=svf,
+                        use_wandb=False
                     )
 
                 # compile the model
                 if compile:
                     print("compiling the model... (takes a ~minute)")
+                    torch.compiler.reset()
                     unoptimized_model = model
-                    torch._dynamo.config.capture_scalar_outputs = True
+                    # torch._dynamo.config.capture_scalar_outputs = True
                     model = torch.compile(model, 
                                           options={
                         'trace.enabled' : True,
                         'trace.graph_diagram': False}
                         ) # requires PyTorch 2.0
+                    
+                    @torch.compile(fullgraph=False)
+                    def fn():
+                        optimizer.step()
 
                 
-                with profile(activities=[ProfilerActivity.CPU,ProfilerActivity.CUDA], profile_memory=True, schedule=my_schedule,on_trace_ready=trace_handler) as torch_profiler:
-                    with tracker_context as tracker:
-                        while True:
-                            # determine and set the learning rate for this iteration
-                            lr = get_lr(iter_num) if decay_lr else learning_rate
-                            for param_group in optimizer.param_groups:
-                                param_group["lr"] = lr
-                                
-                            for micro_step in range(gradient_accumulation_steps):
-                                if ddp:
-                                    # in DDP training we only need to sync gradients at the last micro step.
-                                    # the official way to do this is with model.no_sync() context manager, but
-                                    # I really dislike that this bloats the code and forces us to repeat code
-                                    # looking at the source of that context manager, it just toggles this variable
-                                    model.require_backward_grad_sync = micro_step == gradient_accumulation_steps - 1
-                                with ctx:
-                                    logits = model(X, Y)
-                                    loss = raw_model.last_loss
-                                    loss = loss / gradient_accumulation_steps
-                                # immediately async prefetch next batch while model is doing the forward pass on the GPU
-                                # X, Y = next(train_batch_iter)
-                                # backward pass, with gradient scaling if training in fp16
-                                scaler.scale(loss).backward()
-
-                            # clip the gradient
-                            if grad_clip != 0.0:
-                                scaler.unscale_(optimizer)
-                                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                            # step the optimizer and scaler if training in fp16
-                            scaler.step(optimizer)
-                            scaler.update()
-                            # flush the gradients as soon as we can, no need for this memory anymore
-                            optimizer.zero_grad(set_to_none=True)
-                            if not baseline:
-                                # calling item at the end of fwd / bwd pass
-                                tracker.step(call_item=True if svf.__name__ != 'default_stash_value' else False)
-
-
-                            torch_profiler.step()
-
-                            iter_num += 1
-                            local_iter_num += 1
+                # with profile(activities=[ProfilerActivity.CPU,ProfilerActivity.CUDA], profile_memory=True, schedule=my_schedule,on_trace_ready=trace_handler) as torch_profiler:
+                total_time = 0
+                with tracker_context as tracker:
+                    while True:
+                        start = torch.cuda.Event(enable_timing=True)
+                        end = torch.cuda.Event(enable_timing=True)
+                        start.record()
+                        # determine and set the learning rate for this iteration
+                        lr = get_lr(iter_num) if decay_lr else learning_rate
+                        for param_group in optimizer.param_groups:
+                            param_group["lr"] = lr
                             
-                            # termination conditions
-                            if iter_num > max_iters:
-                                break
-                    with open(f'stashes/{conf_name}.pkl', 'wb') as f:
-                        pickle.dump(tracker._global_stash, f)
+                        for micro_step in range(gradient_accumulation_steps):
+                            if ddp:
+                                # in DDP training we only need to sync gradients at the last micro step.
+                                # the official way to do this is with model.no_sync() context manager, but
+                                # I really dislike that this bloats the code and forces us to repeat code
+                                # looking at the source of that context manager, it just toggles this variable
+                                model.require_backward_grad_sync = micro_step == gradient_accumulation_steps - 1
+                            with ctx:
+                                logits = model(X, Y)
+                                loss = raw_model.last_loss
+                                loss = loss / gradient_accumulation_steps
+                            # immediately async prefetch next batch while model is doing the forward pass on the GPU
+                            # X, Y = next(train_batch_iter)
+                            # backward pass, with gradient scaling if training in fp16
+                            # scaler.scale(loss).backward()
+                            loss.backward()
+
+                        # clip the gradient
+                        if grad_clip != 0.0:
+                            scaler.unscale_(optimizer)
+                            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                        # step the optimizer and scaler if training in fp16
+                        # scaler.step(optimizer)
+                        # scaler.update()
+                        # call opt.step()
+                        if compile:
+                            fn()
+                        else:
+                            optimizer.step()
+                        # flush the gradients as soon as we can, no need for this memory anymore
+                        optimizer.zero_grad(set_to_none=True)
+                        if not baseline:
+                            # calling item at the end of fwd / bwd pass
+                            tracker.step()
+
+                        end.record()
+                        torch.cuda.synchronize()
+
+                        if iter_num > 2:
+                            total_time += start.elapsed_time(end)
+                        # torch_profiler.step()
+
+                        iter_num += 1
+                        local_iter_num += 1
+                        
+                        # termination conditions
+                        if iter_num > max_iters + 3:
+                            break
+                    if not baseline:        
+                        with open(f'stashes/{conf_name}.pkl', 'wb') as f:
+                            pickle.dump(tracker._global_stash, f)
+                    results[conf_name]= total_time / max_iters
                 # break inner sweep loop
                 if baseline:
                     break
@@ -378,3 +406,6 @@ for baseline in [False]:
 
             if ddp:
                 destroy_process_group()
+
+with open('compile_opt-static_lr_and_no_weightdecay-results.pkl', 'wb') as f:
+        pickle.dump(results,f)   
