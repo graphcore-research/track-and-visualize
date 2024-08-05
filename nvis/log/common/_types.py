@@ -1,6 +1,6 @@
 from enum import Enum
 import pandas as _pd
-from typing import Optional, Dict, Any, Union, TypeVar
+from typing import Callable, Literal, Optional, Dict, Any, Tuple, Type, Union, TypeVar
 from dataclasses import dataclass
 import inspect
 # from pandas._typing import 
@@ -123,3 +123,52 @@ class LogFrame:
 
         return flat_schema, wilcards
     
+
+
+# Logging Types
+TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
+
+import torch
+from torch import nn
+
+@dataclass
+class Event:
+    name: str
+    type: Union[Type[nn.Module],str,None]
+    tensor_type: TT
+    value: Any
+    args: Tuple[Any, ...]
+    kwargs: Dict[str, Any]
+
+@dataclass
+class Stash:
+    name: str
+    type: Union[Type[nn.Module],str,None] # or flax module equivalent?
+    tensor_type: TT
+    dtype: torch.dtype # torch dtype, ml dtypes or jax..?
+    value: Any  # output(s) or grad_output(s)
+
+    @property
+    def first_value(self) -> Any:
+        def _value(v: Any) -> Any:
+            if isinstance(v, (tuple, list)) and len(v) >= 1:
+                return _value(v[0])
+            return v
+
+        return _value(self.value)
+    
+StashFn = Callable[[Event], Stash]
+
+
+@dataclass
+class ExponentHistogram:
+    ...
+
+@dataclass
+class ScalarStatistics:
+    ...
+
+@dataclass
+class ScalarAndHist:
+    exp_hist: ExponentHistogram
+    scalar_stats: ScalarStatistics

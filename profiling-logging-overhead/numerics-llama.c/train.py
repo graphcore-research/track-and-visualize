@@ -46,16 +46,17 @@ if module_path not in sys.path:
 
 from torch.profiler import profile, record_function, ProfilerActivity
 from torch.profiler import schedule
+# add local lib to sys path for relative import
 from nvis.log.torch import (stash_full_tensor, stash_scalar_stats, stash_hist ,stash_all_stats_and_hist)
 from nvis.log.torch import track
 
 # from my_logger import track
-stash_values = [stash_full_tensor,stash_scalar_stats,stash_hist,stash_all_stats_and_hist]
+stash_values = [stash_all_stats_and_hist]
 
 all_perms = [
-    tuple(['activations']),
+    # tuple(['activations']),
     # ('activations','gradients'),
-    ('activations','opt_state'),
+    # ('activations','opt_state'),
     ('weights','activations','opt_state')
     ]
 
@@ -63,8 +64,8 @@ import pickle
 
 from torch._dynamo.utils import CompileProfiler
 results = {}
-for baseline in [True,False]:
-    for compile in [True,False]:
+for baseline in [False]:
+    for compile in [False]:
         for svf in stash_values:
             for which_to_track in all_perms:
 
@@ -96,7 +97,7 @@ for baseline in [True,False]:
                 # adamw optimizer
                 gradient_accumulation_steps = 1  # used to simulate larger batch sizes
                 learning_rate = 1e-4  # max learning rate
-                max_iters = 10  # total number of training iterations
+                max_iters = 100  # total number of training iterations
                 weight_decay = 0
                 beta1 = 0.9
                 beta2 = 0.95
@@ -339,7 +340,7 @@ for baseline in [True,False]:
                     while True:
                         start = torch.cuda.Event(enable_timing=True)
                         end = torch.cuda.Event(enable_timing=True)
-                        start.record()
+                        start.record() # type: ignore
                         # determine and set the learning rate for this iteration
                         lr = get_lr(iter_num) if decay_lr else learning_rate
                         for param_group in optimizer.param_groups:
@@ -383,15 +384,15 @@ for baseline in [True,False]:
                         end.record()
                         torch.cuda.synchronize()
 
-                        if iter_num > 2:
-                            total_time += start.elapsed_time(end)
+
+                        total_time += start.elapsed_time(end)
                         # torch_profiler.step()
 
                         iter_num += 1
                         local_iter_num += 1
                         
                         # termination conditions
-                        if iter_num > max_iters + 3:
+                        if iter_num > max_iters:
                             break
                     if not baseline:        
                         with open(f'stashes/{conf_name}.pkl', 'wb') as f:

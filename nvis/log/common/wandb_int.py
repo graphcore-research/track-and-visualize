@@ -1,4 +1,53 @@
-# import wandb
+import wandb
+import wandb.errors
+import wandb.sdk
+
+# need to check if logged in
+login = wandb.login()
+
+class WeightsAndBiasHandler:
+
+    def __init__(self,**kwargs) -> None:
+        """
+            Args:
+                **kwargs () : All kwargs for wandb.init, to initialise the run 
+
+            Returns:
+                None
+        
+        """
+        # check if wandb is logged in
+        if wandb.login(verify=True):
+            ...
+
+            wandb.errors.AuthenticationError
+
+        self.run: wandb.sdk.wandb_run.Run =  wandb.init(
+            **kwargs
+        )
+        pass
+
+    def log(self, data, step):
+        """
+            Log dict to wandb
+        """
+        wandb.log(
+            data = data,
+            step = step
+        )
+        ...
+    
+    def log_artifact(self):
+        """
+            Log artifact to wandb
+        """
+
+        wandb.log_artifact(
+
+        )
+
+        wandb.Artifact()
+        ...
 
 
 # WorkFlow, 

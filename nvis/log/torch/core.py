@@ -40,6 +40,7 @@ visualising transformer activations & gradients using UMAP](example.html).
 """
 
 import dataclasses
+import logging
 import re
 from dataclasses import dataclass
 from functools import partial
@@ -62,42 +63,18 @@ import torch.utils.hooks
 from torch import Tensor, nn
 from copy import deepcopy
 
+from ..common._tracker import BaseTracker
 from .stash_functions import stash_full_tensor
+from ..common._types import Stash, Event, StashFn
+import randomname
+from pathlib import Path
+import pickle
+
 
 TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
 
 
-@dataclass
-class Event:
-    name: str
-    type: Type[nn.Module]
-    tensor_type: TT
-    value: Any
-    args: Tuple[Any, ...]
-    kwargs: Dict[str, Any]
-
-@dataclass
-class Stash:
-    name: str
-    type: Type[nn.Module]
-    tensor_type: TT
-    dtype: torch.dtype
-    value: Any  # output(s) or grad_output(s)
-
-    @property
-    def first_value(self) -> Any:
-        def _value(v: Any) -> Any:
-            if isinstance(v, (tuple, list)) and len(v) >= 1:
-                return _value(v[0])
-            return v
-
-        return _value(self.value)
-
-
-
-StashFn = Callable[[Event], Stash]
-StashValueFn = Callable[[Tensor], Any]
-
+StashValueFn = Callable[[torch.Tensor], Any]
 
 def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
     if isinstance(value, (tuple, list)):
@@ -136,20 +113,11 @@ def get_stash_fn(
 
 NamePattern = Union[None, Pattern[str], str]
 
-
-class Tracker:
-    def __init__(self, stash: StashFn):
-        self.stashes: List[Stash] = []
-        self._handles: List[torch.utils.hooks.RemovableHandle] = []
-        self._stash = stash
-        self._model = None
-        self._step = 0
-        self._global_stash = {}
-
-    # Registration/tracking
-
-    def __enter__(self) -> "Tracker":
-        return self
+class TorchTracker(BaseTracker):
+    def __init__(self, stash: Callable[[Event], Stash], name: str | None = None, init_step: int | None = None,async_offload:bool = True, offload_inc: int = 10):
+        super().__init__(stash, name, init_step, async_offload, offload_inc)
+        self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
+        self._model: Union[torch.nn.Module,None] = None # torch specific
 
     def __exit__(
         self,
@@ -157,11 +125,14 @@ class Tracker:
         exc: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
+        # logging.warning('TRACKER GONE OUT OF SCOPE')
+        # # check if global_stash is empty, if it isn't offload stash to disk/wandb
+        # if self._global_stash:
+        #     self.offload_global_stash()
         self.unregister()
+        super().__exit__(exc_type,exc,traceback)
 
-    def clear(self) -> None:
-        self.stashes.clear()
-
+    # REGISTERING ENTITIES TO BE TRACKED
     def register(self, module: nn.Module, name: str = "", grad: bool = True) -> None:
         self._handles.append(
             module.register_forward_hook(
@@ -174,6 +145,14 @@ class Tracker:
                     partial(self._backward_hook, name=name)
                 )
             )
+
+    def register_optimiser(self,optimizer: torch.optim.Optimizer, param_names: List[str]) -> None:
+        self._handles.append(
+            optimizer.register_step_pre_hook(partial(self._optim_step_hook,p_names=param_names))
+            )
+    
+    def register_weights(self,model: nn.Module):
+        self._model = model
 
     def register_all(
         self,
@@ -195,6 +174,7 @@ class Tracker:
             handle.remove()
         self._handles.clear()
 
+    # HOOKS WHICH ARE USED TO CAPTURE TENSOR STATS
     def _forward_hook(
         self,
         module: nn.Module,
@@ -202,92 +182,63 @@ class Tracker:
         kwargs: Dict[str, Any],
         output: Any,
         *,
-        name: str,
-    ) -> None:
-        # Check if this fixes bwd pass
+        name: str,) -> None:
         self.stashes.append(
-            self._stash(Event(name, None, 'Activation ', output, (), {}))
+            self._stash(Event(name, str(type(module)), 'Activation', output, (), {}))
         )
 
-        # exp_histogram(output)
-
-    def _backward_hook(self, module: nn.Module, grad_output: Any, *, name: str) -> None:
+    def _backward_hook(self, 
+                       module: nn.Module, 
+                       grad_output: Any, 
+                       *, 
+                       name: str) -> None:
         self.stashes.append(
-            self._stash(Event(name, None, 'Gradient', grad_output, (), {}))
+            self._stash(Event(name, str(type(module)), 'Gradient', grad_output, (), {}))
         )
 
-    # Read results
+    def _optim_step_hook(
+            self,
+            optimizer: torch.optim.Optimizer, 
+            *args, 
+            **kwargs):
 
-    def __str__(self) -> str:
-        return f"Tracker(stashes={len(self)}, tracking={len(self._handles)})"
-
-    def __iter__(self) -> Iterator[Stash]:
-        return iter(self.stashes)
-
-    def __getitem__(self, index: int) -> Stash:
-        return self.stashes[index]
-
-    def __len__(self) -> int:
-        return len(self.stashes)
-
-    def _optim_step_hook(self,optimizer: torch.optim.Optimizer, *args, **kwargs):
-        for pn, state in zip(kwargs.get('p_names'),optimizer.state_dict()['state'].values()):
-            
+        for pn, state in zip(kwargs.get('p_names',[]),optimizer.state_dict()['state'].values()):
             for k,v in state.items():
                 if k != 'step':
-                    self.stashes.append(self._stash(Event(pn.removesuffix('.weight'),None,f'Optimiser_State.{k}',v,(),{})))
+                    self.stashes.append(self._stash(Event(pn.removesuffix('.weight'),None,f'Optimiser_State.{k}',v,(),{}))) #type: ignore
 
-    def register_optimiser(self,optimizer: torch.optim.Optimizer, param_names: List[str]) -> None:
-
-        self._handles.append(optimizer.register_step_pre_hook(partial(self._optim_step_hook,p_names=param_names)))
-    
-    def register_weights(self,model: nn.Module):
-        self._model = model
-
-    def evict_stash(self):
-        self.stashes = []
-
-
-    def offload_global_stash(self):
-        # unimplemented as of yet, but where the stashes are converted to DF/Dict and offloaded to disk or sent to wandb
-        ...
-
-
-    def move_to_global_stash(self):
-        self._global_stash[self._step] = deepcopy(self.stashes)
+    def _model_weights_hook(self):
+        if self._model:
+            for name,params in self._model.named_parameters():
+                self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
 
 
     def step(self):
         # write stats to file?
         # clear stashes
         if self._model:
-            for name,params in self._model.named_parameters():
-                self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,f'Weights',params.data,(),{})))
-
-        # (so should offload logs to file over wandb?)
-        self.move_to_global_stash()
-        # need to clear stashes at the end of every iteration (to keep torch compile happy as the hooks depend on it)
-        self.evict_stash()
-        # increment step
-        self._step += 1
+            self._model_weights_hook()
+        
+        self._internal_step()
 
             
 def track(
     module: nn.Module,
     grad: bool = True,
-    optimiser: torch.optim.Optimizer = None,
+    optimiser: Union[torch.optim.Optimizer,None] = None,
     track_weights: bool = True,
     include: NamePattern = None,
     exclude: NamePattern = None,
     stash_value: Optional[StashValueFn] = None,
     stash: Optional[StashFn] = None,
+    async_offload: bool = False,
     use_wandb: bool = False,
-    wandb_kws: Optional[Dict] = None
-    ) -> Tracker:
+    wandb_kws: Optional[Dict] = None,
+    ) -> TorchTracker:
 
     assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
 
-    tracker = Tracker(get_stash_fn(stash_value=stash_value, stash=stash))
+    tracker = TorchTracker(get_stash_fn(stash_value=stash_value, stash=stash),async_offload=async_offload)
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
     if optimiser:
         tracker.register_optimiser(optimiser, param_names = [m for m,p in module.named_parameters()])
@@ -305,6 +256,6 @@ __all__ = [
     "StashValueFn",
     "rmap_tensor",
     "get_stash_fn",
-    "Tracker",
+    "TorchTracker",
     "track",
 ]
