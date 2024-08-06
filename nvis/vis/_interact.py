@@ -5,12 +5,16 @@ from ipywidgets import widgets
 from typing import Dict, Callable, List, Union
 import matplotlib.figure
 import pandas as pd
+from requests import get
 import traitlets
 import matplotlib
 from functools import partial
 
+from nvis.log.common._types import ExponentHistogram
+
 from ..log.common import TensorType
 from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
+from._toolbars import get_toolbar, _ExponentHistogramToolbar, _ScalarLineToolbar
 
 from IPython import display
 import matplotlib.pyplot as plt 
@@ -20,13 +24,19 @@ class NotebookType(str,Enum):
     vscode = 'vscode'
     any = 'any'
 
-# What NB front-end
-if 'google.colab' in sys.modules:
-    NB = NotebookType.colab
-elif 'vscode' in sys.modules:
-    NB = NotebookType.vscode
-else:
-    NB = NotebookType.any
+
+
+
+def what_nb_frontend():
+    # What NB front-end
+    if 'google.colab' in sys.modules:
+        NB = NotebookType.colab
+    elif 'vscode' in sys.modules:
+        NB = NotebookType.vscode
+    else:
+        NB = NotebookType.any
+
+    return NB
 
 
 
@@ -47,25 +57,25 @@ class WidgetHolder:
             redraw = True
         # overwrite redraw_fn args
             for k,v in self.widgets.items():
-                if (type(v.value) == list or type(v.value) == tuple) and len(v.value) <= 1:
+                if (type(v.value) == list or type(v.value) == tuple) and len(v.value) <= 1: # type: ignore
                     # fixing bug doug identified
-                    if len(v.value) == 0:
+                    if len(v.value) == 0: # type: ignore
                         redraw = False
                     else:
-                        self.redraw_fn_args[k] = v.value[0]
+                        self.redraw_fn_args[k] = v.value[0] # type: ignore
                 else:
                     # handling select multiple
-                    if type(v.value) == tuple:
-                        self.redraw_fn_args[k] = list(v.value)
+                    if type(v.value) == tuple: # type: ignore
+                        self.redraw_fn_args[k] = list(v.value) # type: ignore
                     else:
-                        self.redraw_fn_args[k] = v.value
+                        self.redraw_fn_args[k] = v.value # type: ignore
             if redraw:
                 self.redraw_fn(**self.redraw_fn_args)
 
             
         def _f(self,*args,**kwargs):
             # so it only updates on the final point (for dropdown)
-            if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel:
+            if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel: # type: ignore
 
                 if isinstance(args[0]['owner'],widgets.widget_selection.Dropdown):
                     if 'index' in args[0]['old'].keys():
@@ -106,11 +116,11 @@ class WidgetHolder:
             self.redraw_fn = partial(f,fig=fig)
             self.redraw_fn_args = kwargs
 
-        def display(self):
+        def display(self) -> None:
             self.parent.append_display_data(self.container)
             self.parent.outputs = self.parent.outputs[-1:]
 
-        def nuke(self):
+        def nuke(self) -> None:
             """Kill all widgets in WH"""
             for k,v in self.widgets.items():
                 v.close()
@@ -120,7 +130,7 @@ class WidgetHolder:
 
             # Also needs to kill Hboxes...
 
-        def rebuild(self,**kwargs):
+        def rebuild(self,**kwargs) -> None:
             self.widgets: Dict[str,widgets.Widget] = {
                 **kwargs
             }
@@ -133,7 +143,7 @@ class WidgetHolder:
 
 
         def state(self) -> Dict:
-            return {k:v.value for k,v in self.widgets.items()}
+            return {k:v.value for k,v in self.widgets.items()} # type: ignore
         
 
 
@@ -143,7 +153,7 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
     fig.clear()
     
     
-    kind = kwargs.pop('kind','line')
+    kind = kwargs.pop('kind',_ExponentHistogramToolbar.kind[0])
     # Get required data & draw plot
     plotter = _ExpHistPlotter(
                     kind=kind,
@@ -210,7 +220,7 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
     fig.clear()
 
 
-    plotter = _ScalarLinePlotter(kind=kwargs.pop('kind','line'),
+    plotter = _ScalarLinePlotter(kind=kwargs.pop('kind',_ScalarLineToolbar.kind[0]),
                                 x = kwargs.pop('x', ('metadata', 'step')),
                                 scalar_metric=scalar_metric,
                                 facet_kws=kwargs.pop('facet_kws', {}),
@@ -259,14 +269,19 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
     plt.switch_backend('ipympl')
 
 
-    
+    assert isinstance(f,Callable), f'{f} is not Callable'
     # Accessible with-in the function scope
-    WH = None
+    WH : Union[WidgetHolder,None] = None
+    stack_num = 0
+    APP = widgets.Output(layout={'width': f'{width}px','justify-content': 'space-around', 'overflow': 'scroll hidden'})
+    TOOLBAR = widgets.Output(layout={'width': '100%','justify-content': 'space-around'})
     
     ###########################################################################################################################
-    # Onclick Event Handler for ScalarGlobalHeatmap
+    # Event Handler(s) for ScalarGlobalHeatmap
     ###########################################################################################################################
-    def sgh_onclick(event: matplotlib.backend_bases.MouseEvent):
+    # Onclick 
+    def sgh_onclick(event: matplotlib.backend_bases.MouseEvent): # type: ignore
+        assert type(WH) == WidgetHolder, 'No Widget Holder initalised'
         nonlocal stack_num # for tracking plot state
         nonlocal APP
         # initial state of plot
@@ -305,7 +320,7 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
                 WH.nuke()
                 WH.set_current_redraw_function(drf, **drargs)
                 WH.rebuild(
-                    kind = widgets.Dropdown(options=['bar','kde','line'], value='line')
+                    **get_toolbar(kind=_ExponentHistogramToolbar.kind)
                 )
                 
         elif event.button == 3 and stack_num > 0 :
@@ -322,30 +337,32 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
             WH.nuke()
             WH.set_current_redraw_function(drf, **drargs) # need to include the kwargs in here ..
             WH.rebuild(
-                    scalar_metric = widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=SCALAR_METRIC),
-                    tt = widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=TT, description='Number:')
+                    **get_toolbar(
+                        df = kwargs['df'],
+                        scalar_metric = SCALAR_METRIC,
+                        tt = TT
+                    )
             )
     
     ###########################################################################################################################
-    # Onclick Event Handler for Exponent Hist
+    # Event Handler(s) for Exponent Hist
     ###########################################################################################################################
-    def eh_onclick(event: matplotlib.backend_bases.MouseEvent):
+    # Onclick 
+    def eh_onclick(event: matplotlib.backend_bases.MouseEvent): # type: ignore
         ...
 
     ###########################################################################################################################
-    # Onclick Event Handler for Global Scalar Line
+    # Event Handler(s) for Global Scalar Line
     ###########################################################################################################################
-    def sl_onclick(event: matplotlib.backend_bases.MouseEvent):
+    # Onclick 
+    def sl_onclick(event: matplotlib.backend_bases.MouseEvent): # type: ignore
         ...
 
-    assert isinstance(f,Callable), f'{f} is not Callable'
-
+    
     # Create figure
     with plt.ioff():
         fig = f(**kwargs)
-    stack_num = 0   
-
-
+    
     # General Plot Formating
     fig.canvas.toolbar_visible = False
     fig.canvas.figure_title = False
@@ -355,20 +372,22 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
 
 
     # Canvas output & Figure set to same size
-    APP = widgets.Output(layout={'width': f'{width}px','justify-content': 'space-around', 'overflow': 'scroll hidden'})
     fig.figure.set_figwidth(width/fig.dpi)
-    TOOLBAR = widgets.Output(layout={'width': '100%','justify-content': 'space-around'})
     
-
     # Initial State of the interactive visualisation..
     if f.__name__ == 'scalar_global_heatmap':
-
         cid = fig.figure.canvas.mpl_connect('button_press_event', sgh_onclick)
 
         # FN specific 
         WH = WidgetHolder(parent=TOOLBAR,
-                          scalar_metric=widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=kwargs['scalar_metric']),
-                          tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']))
+                          **get_toolbar(
+                              df=kwargs['df'],
+                              scalar_metric = kwargs['scalar_metric'],
+                              tt = kwargs['tt']
+                          )
+                        #   scalar_metric=widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=kwargs['scalar_metric']),
+                        #   tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt'])
+                          )
         WH.observe()
         WH.set_current_redraw_function(_global_scalar_redraw, fig=fig.figure, **kwargs)
         WH.display()
@@ -378,27 +397,30 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
 
         # Need to add support for 
         WH = WidgetHolder(parent=TOOLBAR,
-                          kind = widgets.Dropdown(options=['bar','kde','line'], value='bar'),
-                          tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']),
-                          step = widgets.Dropdown(options=kwargs['df'].metadata.step.unique().tolist(), value = kwargs['step']),
-                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)) if NB != NotebookType.colab else widgets.SelectMultiple(options=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],))
+                          **get_toolbar(
+                              df=kwargs['df'],
+                              kind=_ExponentHistogramToolbar.kind,
+                              tt=kwargs['tt'],
+                              step=kwargs['step'],
+                              layer=kwargs['layer']
+                              )
                           )
     
         WH.observe()
         WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure, **kwargs)
         WH.display()
 
-
-
         # raise NotImplementedError(f'{f.__name__} is not currently supported')
     elif f.__name__ == 'scalar_line':
         cid = fig.figure.canvas.mpl_connect('button_press_event', sl_onclick)
 
         WH = WidgetHolder(parent=TOOLBAR,
-                          kind = widgets.Dropdown(options=['line','scatter'], value=kwargs.get('kind','line')),
-                          tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt']),
-                          scalar_metric = widgets.SelectMultiple(options=kwargs['df'].scalar_stats.columns.to_list(), value=(kwargs['scalar_metric'],) if type(kwargs['scalar_metric']) != list else tuple(kwargs['scalar_metric']) ),
-                          layer=  widgets.TagsInput(allowed_tags=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],)) if NB != NotebookType.colab else widgets.SelectMultiple(options=kwargs['df'].metadata.name.unique().tolist(), value = (kwargs['layer'],))
+                          **get_toolbar(
+                              df=kwargs['df'],
+                              kind = _ScalarLineToolbar.kind,
+                              tt = kwargs['tt'],
+                              scalar_metric = kwargs['scalar_metric'],
+                              layer = kwargs['layer'])
                           )
 
 
@@ -406,20 +428,16 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
         WH.set_current_redraw_function(_scalar_line_redraw, fig=fig.figure, **kwargs)
         WH.display()
 
-        # raise NotImplementedError(f'{f.__name__} is not currently supported')
     else:
         raise Exception(f'{f.__name__} is not a valid vis function')
         
-        
-
         
     # Add to master output...
     # APP.append_display_data(TOOLBAR)
     # APP.append_display_data(TOOLBAR)
     APP.append_display_data(fig.canvas)
-    
     display.display(TOOLBAR,APP)
 
-    if NB == NotebookType.colab:
+    if what_nb_frontend() == NotebookType.colab:
         plt.show()
         fig.canvas.resizable = False

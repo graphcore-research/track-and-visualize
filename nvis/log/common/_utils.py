@@ -108,7 +108,7 @@ def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame, debug=False):
 
 
     if counter != len(df.columns):
-        raise SchemaException(f"The following columns did not match the schema: {','.join([umc[1] for umc in un_matched_cols])}")
+        raise SchemaException(f"The following columns did not match the schema: {','.join([str(umc[1]) for umc in un_matched_cols])}")
 
     # Make sure WildCards match  
     for key, value in wcs.items():

@@ -9,3 +9,4 @@ dist/
 build/
 torch_compile_debug
 local-explorations
+wandb
