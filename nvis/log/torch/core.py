@@ -114,7 +114,7 @@ def get_stash_fn(
 NamePattern = Union[None, Pattern[str], str]
 
 class TorchTracker(BaseTracker):
-    def __init__(self, stash: Callable[[Event], Stash], name: str | None = None, init_step: int | None = None,async_offload:bool = True, offload_inc: int = 10):
+    def __init__(self, stash: Callable[[Event], Stash], name: str | None = None, init_step: int | None = None, async_offload: bool = True, offload_inc: int = 10):
         super().__init__(stash, name, init_step, async_offload, offload_inc)
         self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
         self._model: Union[torch.nn.Module,None] = None # torch specific
@@ -146,7 +146,7 @@ class TorchTracker(BaseTracker):
                 )
             )
 
-    def register_optimiser(self,optimizer: torch.optim.Optimizer, param_names: List[str]) -> None:
+    def register_optimiser(self,optimizer: torch.optim.Optimizer, param_names: List[str]) -> None: #type: ignore
         self._handles.append(
             optimizer.register_step_pre_hook(partial(self._optim_step_hook,p_names=param_names))
             )
@@ -198,7 +198,7 @@ class TorchTracker(BaseTracker):
 
     def _optim_step_hook(
             self,
-            optimizer: torch.optim.Optimizer, 
+            optimizer: torch.optim.Optimizer, #type: ignore
             *args, 
             **kwargs):
 
@@ -225,20 +225,22 @@ class TorchTracker(BaseTracker):
 def track(
     module: nn.Module,
     grad: bool = True,
-    optimiser: Union[torch.optim.Optimizer,None] = None,
+    optimiser: Union[torch.optim.Optimizer,None] = None, #type: ignore
     track_weights: bool = True,
     include: NamePattern = None,
     exclude: NamePattern = None,
     stash_value: Optional[StashValueFn] = None,
     stash: Optional[StashFn] = None,
     async_offload: bool = False,
+    offload_inc: int = 10,
     use_wandb: bool = False,
-    wandb_kws: Optional[Dict] = None,
+    # wandb_kws: Optional[Dict] = None,
     ) -> TorchTracker:
 
-    assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
+    # assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
+    # Check if wandb is logged in and a run has been initialised
 
-    tracker = TorchTracker(get_stash_fn(stash_value=stash_value, stash=stash),async_offload=async_offload)
+    tracker = TorchTracker(get_stash_fn(stash_value=stash_value, stash=stash),async_offload=async_offload,offload_inc=offload_inc)
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
     if optimiser:
         tracker.register_optimiser(optimiser, param_names = [m for m,p in module.named_parameters()])

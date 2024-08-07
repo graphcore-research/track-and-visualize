@@ -1,25 +1,30 @@
 import logging
-from mimetypes import init
-import multiprocessing.context
-import multiprocessing.context
+import concurrent.futures
 from pathlib import Path
 import pickle
 from types import TracebackType
 
-from click import launch
 from ._types import StashFn,Stash
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
 import randomname
 from copy import deepcopy
 import multiprocessing
+import os
+import tempfile
+
+def async_wrapper(name: str, step: int, object: Any):
+    object.seek(0)
+    temp = pickle.loads(object.read())
+    object.close()
+    pickle_to_disk(name,step,temp)
 
 def pickle_to_disk(name: str, step: int, object: Any):
+    logging.warning(f'Offload PID: {os.getpid()}')
     p = Path("./nvis-logs")
     p.mkdir(parents=True, exist_ok=True)
     out= p / f'{name}-{step}.pkl'
-
     with open(out, 'wb') as f:
-        pickle.dump(object,f)
+        pickle.dump(df,f)
 
 class BaseTracker:
     def __init__(self, 
@@ -34,12 +39,19 @@ class BaseTracker:
         self._name = name if name != None else randomname.get_name() # run name
         self._offload_inc: int = offload_inc
         self._step: int = init_step if init_step else 0
-        self.async_offload = async_offload # requires if __name__ == '__main__'
+        self.async_offload = async_offload
+
+
+        # Redundant not that I'm using concurrent.futures
+        if multiprocessing.current_process().name != "MainProcess" and async_offload:
+            logging.warning('It would appear that your code is not main protected (i.e. if __name__ == "__main__":...) \n \
+                            async_offload uses multiprocessing and if your main function is not protected, it will simply keep re-executing it')
+
         self.offload_fn: Callable = pickle_to_disk # could make this an init argument?
         if async_offload:
             # spawn is preferable here as it eliminates race condition on _global_stash
-            self._mp_context: multiprocessing.context.SpawnContext = multiprocessing.get_context('spawn')
-            self._processes: List[multiprocessing.context.SpawnProcess] = []
+            self._executor = concurrent.futures.ProcessPoolExecutor(max_workers=4)
+
 
     def __enter__(self) -> "BaseTracker":
         return self
@@ -58,10 +70,10 @@ class BaseTracker:
         
         # wait for all background processes 
         # to end before leaving tracker
+        
         if self.async_offload:
-            for p in self._processes:
-                while p.is_alive():
-                    ...
+            # do I need to wait for the future to be finished?
+            self._executor.shutdown()
 
     def __str__(self) -> str:
         return f"Tracker(stashes={len(self)})"
@@ -89,30 +101,23 @@ class BaseTracker:
         # this should be configurable?
         
         if self.async_offload:
-            self.launch_background_process()
+                self.launch_background_process()
         else:
             self.offload_fn(self._name,self._step,self._global_stash)
             self.evict_global_stash()
 
     def launch_background_process(self):
-        # should check that args for offload_fn match (self._name,self._step,self._global_stash)
-        logging.warning(f'Background Processes{[_p for _p in self._processes if _p.is_alive()]}')
-        p = self._mp_context.Process(
-            target=self.offload_fn, 
-            args=(self._name,self._step,self._global_stash))
-        p.start()
-        self._processes.append(
-            p
-        )
+        # offload to temporary file before doing anything else
+        tfile = tempfile.TemporaryFile()
+        pickle.dump(self._global_stash,tfile)
+        
+        self._executor.submit(async_wrapper, self._name, self._step, tfile)
         self.evict_global_stash()
 
 
     def _internal_step(self):
         # write stats to file?
         # clear stashes
-        # if self._model:
-            # self._model_weights_hook()
-
         # (so should offload logs to file over wandb?)
         self.move_to_global_stash()
         # need to clear stashes at the end of every iteration (to keep torch compile happy as the hooks depend on it)
