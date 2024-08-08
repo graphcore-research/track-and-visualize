@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import partial
+from typing import Union
 import matplotlib.figure
 import numpy as np
 import pandas as pd
@@ -47,7 +48,7 @@ class FacetGrid(Grid):
         row_order=None, col_order=None, hue_order=None, hue_kws=None,
         dropna=False, legend_out=True, despine=True,
         margin_titles=False, xlim=None, ylim=None, subplot_kws=None,
-        gridspec_kws=None, figure: matplotlib.figure.Figure = None
+        gridspec_kws=None, figure: Union[matplotlib.figure.Figure,None] = None
     ):
 
         super().__init__()

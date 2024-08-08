@@ -13,8 +13,8 @@ from ._q import EXP,SCA,META
 
 
 def map_hist(value: Dict[str,Any]) -> Dict[Tuple[str,Union[int,float]],int]:
-    counts = value['hist'].tolist()
-    bins = value['bins'].tolist()
+    counts = value['hist']
+    bins = value['bins']
     bins[0] = float('-inf')
     bins[-1] = float('inf')
 
@@ -34,7 +34,7 @@ def check_for_prefill(global_dict: Dict):
     else:
         return []
 
-def global_stash_to_logframe(global_stash: Dict[int, List[Stash]]) -> pd.DataFrame:
+def global_stash_to_logframe(global_stash: Dict[int, List[Dict]]) -> pd.DataFrame:
     df_dict: Dict[Tuple[str,Union[str,float,int]],List] = {}
 
     def _backfill(min_len: int):
@@ -53,7 +53,9 @@ def global_stash_to_logframe(global_stash: Dict[int, List[Stash]]) -> pd.DataFra
             else:
                 df_dict[META('step')].append(step)
 
-            for key, value in stash.__dict__.items():
+            for key, value in stash.items():
+
+
                 if key != 'value':
                     if META(key) not in df_dict.keys():
                         df_dict[META(key)] = [value]
@@ -81,18 +83,20 @@ def global_stash_to_logframe(global_stash: Dict[int, List[Stash]]) -> pd.DataFra
                         elif value_type == 'scalar_stats':
                             
                             for stat, stat_value in nested_dict.items():
-                                assert stat_value.dim() == 0, f'Scalar Stats must be Scalar Tensors, i.e. dim == 0, not {stat_value.dim()}'
+                                # assert stat_value.dim() == 0, f'Scalar Stats must be Scalar Tensors, i.e. dim == 0, not {stat_value.dim()}'
                                 if SCA(stat) not in df_dict.keys():
-                                    df_dict[SCA(stat)] = [stat_value.item()]
+                                    df_dict[SCA(stat)] = [stat_value]
                                 else:
-                                    df_dict[SCA(stat)].append(stat_value.item())
+                                    df_dict[SCA(stat)].append(stat_value)
                         else:
-                            assert nested_dict.dim() == 0, f'Scalar Stats must be Scalar Tensors, i.e. dim == 0, not {nested_dict.dim()}'
+                            # assert nested_dict.dim() == 0, f'Scalar Stats must be Scalar Tensors, i.e. dim == 0, not {nested_dict.dim()}'
                             if SCA(value_type) not in df_dict.keys():
-                                df_dict[SCA(value_type)] = [nested_dict.item()]
+                                df_dict[SCA(value_type)] = [nested_dict]
                             else:
-                                df_dict[SCA(value_type)].append(nested_dict.item())
+                                df_dict[SCA(value_type)].append(nested_dict)
 
     df = pd.DataFrame(df_dict)
     df.columns = pd.MultiIndex.from_tuples(df.columns)
+    # remove framework name from dtype
+    df[('metadata','dtype')] = df[('metadata','dtype')].apply(lambda x: x.split('.')[-1])
     return df

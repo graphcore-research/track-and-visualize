@@ -4,27 +4,30 @@ from pathlib import Path
 import pickle
 from types import TracebackType
 
+from nvis.log.common._log_handler import global_stash_to_logframe
+
 from ._types import StashFn,Stash
-from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union, ByteString
 import randomname
 from copy import deepcopy
 import multiprocessing
 import os
 import tempfile
+logger = logging.getLogger(__name__)
+import msgpack
 
-def async_wrapper(name: str, step: int, object: Any):
-    object.seek(0)
-    temp = pickle.loads(object.read())
-    object.close()
-    pickle_to_disk(name,step,temp)
+
+def async_wrapper(f: Callable,name: str, step: int, object: ByteString):
+    # function for writing to disk  
+    f(name,step,msgpack.unpackb(object,strict_map_key=False))
 
 def pickle_to_disk(name: str, step: int, object: Any):
-    logging.warning(f'Offload PID: {os.getpid()}')
+    object = global_stash_to_logframe(object)
     p = Path("./nvis-logs")
     p.mkdir(parents=True, exist_ok=True)
     out= p / f'{name}-{step}.pkl'
     with open(out, 'wb') as f:
-        pickle.dump(df,f)
+        pickle.dump(object,f)
 
 class BaseTracker:
     def __init__(self, 
@@ -35,22 +38,18 @@ class BaseTracker:
                  offload_inc: int = 10):
         self.stashes: List[Stash] = []
         self._stash = stash
-        self._global_stash: Dict[int,List[Stash]] = {}
+        self._global_stash: Dict[int,List[Dict]] = {}
         self._name = name if name != None else randomname.get_name() # run name
         self._offload_inc: int = offload_inc
         self._step: int = init_step if init_step else 0
         self.async_offload = async_offload
-
+        self.offload_fn: Callable = pickle_to_disk # could make this an init argument?
 
         # Redundant not that I'm using concurrent.futures
-        if multiprocessing.current_process().name != "MainProcess" and async_offload:
-            logging.warning('It would appear that your code is not main protected (i.e. if __name__ == "__main__":...) \n \
-                            async_offload uses multiprocessing and if your main function is not protected, it will simply keep re-executing it')
-
-        self.offload_fn: Callable = pickle_to_disk # could make this an init argument?
+        
         if async_offload:
             # spawn is preferable here as it eliminates race condition on _global_stash
-            self._executor = concurrent.futures.ProcessPoolExecutor(max_workers=4)
+            self._executor = concurrent.futures.ProcessPoolExecutor()
 
 
     def __enter__(self) -> "BaseTracker":
@@ -62,7 +61,6 @@ class BaseTracker:
         exc: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        logging.warning('TRACKER GONE OUT OF SCOPE')
         # check if global_stash is empty, 
         # if it isn't offload stash to disk/wandb
         if self._global_stash:
@@ -70,9 +68,7 @@ class BaseTracker:
         
         # wait for all background processes 
         # to end before leaving tracker
-        
         if self.async_offload:
-            # do I need to wait for the future to be finished?
             self._executor.shutdown()
 
     def __str__(self) -> str:
@@ -94,7 +90,7 @@ class BaseTracker:
         self.stashes.clear()
 
     def move_to_global_stash(self):
-        self._global_stash[self._step] = deepcopy(self.stashes)
+        self._global_stash[self._step] = [stash.__dict__ for stash in self.stashes]
 
     def offload_global_stash(self):
         # unimplemented as of yet, but where the stashes are converted to DF/Dict and offloaded to disk or sent to wandb
@@ -107,11 +103,9 @@ class BaseTracker:
             self.evict_global_stash()
 
     def launch_background_process(self):
-        # offload to temporary file before doing anything else
-        tfile = tempfile.TemporaryFile()
-        pickle.dump(self._global_stash,tfile)
-        
-        self._executor.submit(async_wrapper, self._name, self._step, tfile)
+        # serialise and offload to background thread
+        future = self._executor.submit(async_wrapper,self.offload_fn, self._name, self._step, msgpack.packb(self._global_stash)) #type: ignore
+
         self.evict_global_stash()
 
 
@@ -121,9 +115,12 @@ class BaseTracker:
         # (so should offload logs to file over wandb?)
         self.move_to_global_stash()
         # need to clear stashes at the end of every iteration (to keep torch compile happy as the hooks depend on it)
+        logging.warning(f'Global_Stash: {len(self._global_stash)}, Local Stash: {len(self.stashes)}')
         self.evict_stash()
 
-        if self._step % self._offload_inc == 0:
+        
+
+        if self._step % self._offload_inc == 0 and self._step > 0:
             self.offload_global_stash()
 
         # increment step

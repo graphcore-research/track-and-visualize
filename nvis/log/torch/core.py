@@ -88,8 +88,8 @@ def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
     return value
 
 
-def tensor_dtype(tensor: torch.Tensor) -> torch.dtype:
-    return tensor.dtype
+def tensor_dtype(tensor: torch.Tensor) -> str:
+    return str(tensor.dtype)
 
 def default_stash(event: Event, stash_value: StashValueFn) -> Stash:
     return Stash(
@@ -113,11 +113,14 @@ def get_stash_fn(
 
 NamePattern = Union[None, Pattern[str], str]
 
+
+
 class TorchTracker(BaseTracker):
-    def __init__(self, stash: Callable[[Event], Stash], name: str | None = None, init_step: int | None = None, async_offload: bool = True, offload_inc: int = 10):
+    def __init__(self, stash: Callable[[Event], Stash], async_offload: bool, only_stash_during_training: bool, offload_inc: int, name: str | None = None, init_step: int | None = None):
         super().__init__(stash, name, init_step, async_offload, offload_inc)
         self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
         self._model: Union[torch.nn.Module,None] = None # torch specific
+        self.only_stash_during_training = only_stash_during_training
 
     def __exit__(
         self,
@@ -136,7 +139,7 @@ class TorchTracker(BaseTracker):
     def register(self, module: nn.Module, name: str = "", grad: bool = True) -> None:
         self._handles.append(
             module.register_forward_hook(
-                partial(self._forward_hook, name=name), with_kwargs=True
+                partial(self._forward_hook_v2 if self.only_stash_during_training else self._forward_hook_v1, name=name), with_kwargs=True
             )
         )
         if grad:
@@ -175,7 +178,7 @@ class TorchTracker(BaseTracker):
         self._handles.clear()
 
     # HOOKS WHICH ARE USED TO CAPTURE TENSOR STATS
-    def _forward_hook(
+    def _forward_hook_v1(
         self,
         module: nn.Module,
         args: Tuple[Any],
@@ -183,9 +186,24 @@ class TorchTracker(BaseTracker):
         output: Any,
         *,
         name: str,) -> None:
+        # only do stashes when training?
         self.stashes.append(
-            self._stash(Event(name, str(type(module)), 'Activation', output, (), {}))
-        )
+                self._stash(Event(name, str(type(module)), 'Activation', output, (), {}))
+            )
+
+    def _forward_hook_v2(
+        self,
+        module: nn.Module,
+        args: Tuple[Any],
+        kwargs: Dict[str, Any],
+        output: Any,
+        *,
+        name: str,) -> None:
+        # only do stashes when training?
+        if module.training:
+            self.stashes.append(
+                self._stash(Event(name, str(type(module)), 'Activation', output, (), {}))
+            )
 
     def _backward_hook(self, 
                        module: nn.Module, 
@@ -206,11 +224,18 @@ class TorchTracker(BaseTracker):
             for k,v in state.items():
                 if k != 'step':
                     self.stashes.append(self._stash(Event(pn.removesuffix('.weight'),None,f'Optimiser_State.{k}',v,(),{}))) #type: ignore
+                    
 
     def _model_weights_hook(self):
-        if self._model:
-            for name,params in self._model.named_parameters():
-                self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
+
+        if self.only_stash_during_training:
+            if self._model and self._model.training:
+                for name,params in self._model.named_parameters():
+                    self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
+        else:
+            if self._model:
+                for name,params in self._model.named_parameters():
+                    self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
 
 
     def step(self):
@@ -234,13 +259,18 @@ def track(
     async_offload: bool = False,
     offload_inc: int = 10,
     use_wandb: bool = False,
-    # wandb_kws: Optional[Dict] = None,
+    only_stash_during_training = True,
     ) -> TorchTracker:
 
     # assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
     # Check if wandb is logged in and a run has been initialised
 
-    tracker = TorchTracker(get_stash_fn(stash_value=stash_value, stash=stash),async_offload=async_offload,offload_inc=offload_inc)
+    tracker = TorchTracker(
+        get_stash_fn(stash_value=stash_value, stash=stash),
+        async_offload=async_offload,
+        only_stash_during_training=only_stash_during_training,
+        offload_inc=offload_inc)
+    
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
     if optimiser:
         tracker.register_optimiser(optimiser, param_names = [m for m,p in module.named_parameters()])

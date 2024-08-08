@@ -19,6 +19,9 @@ from._toolbars import get_toolbar, _ExponentHistogramToolbar, _ScalarLineToolbar
 from IPython import display
 import matplotlib.pyplot as plt 
 
+import warnings
+
+
 class NotebookType(str,Enum):
     colab = 'colab'
     vscode = 'vscode'
@@ -169,19 +172,22 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
 
 
     _df = plotter._query(df,layer,tt, step)
-    if plotter.facet:
-        with plt.ioff():
-            plotter._plot_facet(
-            df=_df,
-            figure=fig
-            )
+    if not _df.empty:
+        if plotter.facet:
+            with plt.ioff():
+                plotter._plot_facet(
+                df=_df,
+                figure=fig
+                )
+        else:
+            # create new axes
+            new_ax = fig.gca()
+            with plt.ioff():
+                plotter._plot_single(_df,new_ax)
+        # X-axis isn't functioning correctly
+            fig.suptitle(f'Layer: {layer}, Step: {step}, TT: {tt}')
     else:
-        # create new axes
-        new_ax = fig.gca()
-        with plt.ioff():
-            plotter._plot_single(_df,new_ax)
-    # X-axis isn't functioning correctly
-        fig.suptitle(f'Layer: {layer}, Step: {step}, TT: {tt}')
+        warnings.warn('The input query return no results, displaying an empty figure')
     fig.canvas.draw_idle()
 
     
@@ -203,15 +209,16 @@ def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scala
             )
     
     _df = plotter._query(df,tt,inc)
-    
-    # create new axes
-    plotter._plot_single(
-        df=_df,
-        ax=new_ax
-    )
+    if not _df.empty:
+        # create new axes
+        plotter._plot_single(
+            df=_df,
+            ax=new_ax
+        )
 
-    fig.suptitle(scalar_metric.upper())
-
+        fig.suptitle(scalar_metric.upper())
+    else:
+        warnings.warn('The input query return no results, displaying an empty figure')
     fig.canvas.draw_idle()
 
 
@@ -231,24 +238,30 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
                          layer=layer,
                          tt=tt
                          )
-
-    if plotter.facet:
-        with plt.ioff():
-            plotter._plot_facet(
-            df=_df,
-            figure=fig
-            )
-
-            
-    else:
-        # create new axes
-        new_ax = fig.gca()
-        with plt.ioff():
-            plotter._plot_single(_df,new_ax)
-
-            fig.suptitle(f'Layer: {layer}, TT: {tt}')
-    fig.canvas.draw_idle()
     
+    if not _df.empty:
+
+        if plotter.facet:
+            with plt.ioff():
+                plotter._plot_facet(
+                df=_df,
+                figure=fig
+                )
+
+                
+        else:
+            # create new axes
+            new_ax = fig.gca()
+            with plt.ioff():
+                plotter._plot_single(_df,new_ax)
+
+                fig.suptitle(f'Layer: {layer}, TT: {tt}')
+    else:
+        warnings.warn('The input query return no results, displaying an empty figure')
+    fig.canvas.draw_idle()
+
+# TODO: Need to check that querys are in the DF, both w.r.t to dtype annotations (i.e. logged dtype is out of range of logged hists)
+# TODO: Need to ensure check that the tensors stats exists (i.e. step 0 optimiser state)
 
 
 def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:

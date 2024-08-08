@@ -3,6 +3,7 @@ import matplotlib.axes
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.ticker
 import ml_dtypes
 import numpy as np
 import seaborn as sns
@@ -41,7 +42,7 @@ def _base2_format(l,value, tick_number):
 def _getformatter(list) -> Callable:
     return partial(_base2_format, list)
 
-def _gen_facet_query(layer, tt, df) -> Tuple[Any, str]:
+def _gen_facet_query(layer: Union[List[str],str,Pattern], tt: Union[TensorType,List,str,None], df) -> Tuple[Any, str]:
     """
         fn for generating df query for faceting across TensorType or Layername.
 
@@ -76,19 +77,19 @@ def _gen_facet_query(layer, tt, df) -> Tuple[Any, str]:
         tq = f' in {[t.name if type(t) != str else t  for t in df.metadata.tensor_type.unique()]}'
         facet = _q.TTYPE
     elif type(tt) == TensorType or type(tt) == str:
-        tq =  f' == "{tt.name if type(tt) != str else tt}"'
+        tq =  f' == "{tt.name if type(tt) == TensorType else tt}"'
 
     query = f'@df.metadata.name{lq} & @df.metadata.tensor_type{tq}'
 
     return facet, query
 
 def _annotate_nf_details(
-        ax: plt.Axes, 
-        x_values: List[str], 
+        ax: matplotlib.axes.Axes, 
+        x_values: Union[List[str],Tuple[np.ndarray, np.ndarray]],
         fp_dtype: Union[str,List[str]], 
         dtype_info: Tuple[bool,bool,bool], 
-        color_map: List[str] = None, 
-        logged_dtypes: List[str] = None):
+        color_map: Union[List[str],None] = None, 
+        logged_dtypes: Union[List[str],None] = None):
     """
         This implementation is based on using categorical values for the x-axis, which is not the case in a kdeplot
 
@@ -97,7 +98,7 @@ def _annotate_nf_details(
     offset = 0
     # will either be a list of strings or a np array
 
-    if logged_dtypes and len(logged_dtypes) > 1:
+    if logged_dtypes and len(logged_dtypes) > 1 and type(fp_dtype) == str:
         offset = logged_dtypes.index(fp_dtype)
 
     # if single value is passed in, wrap in list so branch in logic
@@ -109,17 +110,62 @@ def _annotate_nf_details(
 
     # just a quick soln for having different annotation colours
     if color_map == None:
-        color_map = plt.colormaps.get_cmap('Set1').resampled(len(fp_dtype) + offset).colors
+        color_map = plt.colormaps.get_cmap('Set1').resampled(len(fp_dtype) + offset).colors # type: ignore
 
     # need some logic for changing colour for different ftypes..
-    for fpdt,color in zip(fp_dtype,color_map[offset:]):
+    for fpdt,color in zip(fp_dtype,color_map[offset:]): # type: ignore
         # parse dtype
         fp_info = ml_dtypes.finfo(fpdt)
-        line_styles = (
-        (x_values.index(str(fp_info.maxexp)) if type(x_values) == list else fp_info.max,'-', f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",),
-        (x_values.index(str(np.log2(fp_info.smallest_normal))) if type(x_values) == list else fp_info.smallest_normal,'--', f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)"),
-        (x_values.index(str(np.log2(fp_info.smallest_subnormal))) if type(x_values) == list else fp_info.smallest_subnormal,':', f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)")
-        )
+
+        
+        line_styles = []
+
+        # (x, linestyle, label)
+
+        # max_exp
+        # (x_values.index(str(fp_info.maxexp)) if type(x_values) == list else fp_info.max,'-',
+        #   f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",),
+        if type(x_values) == list and str(fp_info.maxexp) in x_values:
+            line_styles.append(
+                (x_values.index(str(fp_info.maxexp)),
+                 '-',
+                 f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)"))
+        else:
+            line_styles.append(
+                (fp_info.max,
+                 '-',
+                 f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)"))
+            
+        # smallest normal
+        # (x_values.index(str(np.log2(fp_info.smallest_normal))) if type(x_values) == list else fp_info.smallest_normal,
+        #  '--', f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)"),
+        if type(x_values) == list and str(np.log2(fp_info.smallest_normal)) in x_values:
+            line_styles.append(
+                (x_values.index(str(np.log2(fp_info.smallest_normal))),
+                 '--', 
+                 f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)"))
+        else:
+            line_styles.append(
+                (fp_info.smallest_normal,
+                 '--', 
+                 f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)"))
+        # smallest sub_normal
+        # (x_values.index(str(np.log2(fp_info.smallest_subnormal))) if type(x_values) == list else fp_info.smallest_subnormal,
+        #  ':', f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)")
+        if type(x_values) == list and str(np.log2(fp_info.smallest_subnormal)) in x_values:
+            line_styles.append(
+                (x_values.index(str(np.log2(fp_info.smallest_subnormal))),
+                 ':', 
+                 f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)"))
+        else:
+            line_styles.append(
+                (fp_info.smallest_subnormal,
+                 ':', 
+                 f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)"))
+
+
+        # add error handling here (for out of range hist bins)
+        line_styles = tuple(line_styles)
 
         for ls,d_if in zip(line_styles,dtype_info):
 
@@ -145,7 +191,7 @@ def _swap_infities(ed):
     ed_copy[-1] = ed[-2] + 1 # make inf into max non inf exponent +1
     return ed_copy
 
-def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) -> np.ndarray:
+def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) -> Tuple[np.ndarray,np.ndarray]:
     """
         Need underlying data for kde plot, slightly hacky way of generating an approximation of it.
         Will refine this in due course.. 
@@ -172,8 +218,8 @@ class _GlobalHeatmapPlotter:
         self.kwargs = kwargs
 
 
-    def _query(self,df :pd.DataFrame, tt: TensorType, inc: int) -> pd.DataFrame:
-        return df.query(f'@df.metadata.tensor_type == "{tt.name if type(tt) != str else tt }" & @df.metadata.step % {inc} == 0')
+    def _query(self,df :pd.DataFrame, tt: Union[TensorType,str], inc: int) -> pd.DataFrame:
+        return df.query(f'@df.metadata.tensor_type == "{tt.name if type(tt) == TensorType else tt }" & @df.metadata.step % {inc} == 0')
         
 
     def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):
@@ -204,17 +250,17 @@ class _GlobalHeatmapPlotter:
 
 def scalar_global_heatmap(
         df: pd.DataFrame,
-        tt: Union[TensorType, List[TensorType], None],
-        scalar_metric: Union[str, List[str]],
+        tt: Union[TensorType, str, None],
+        scalar_metric: str,
         inc: int = 1,
         x=_q.IT,
         y=_q.NAME,
         figsize: Tuple[float,float] = (10,10),
-        col_wrap: int = None,
+        col_wrap: Union[int,None] = None,
         **kwargs):
     """
     Plots a global view a single tensor type or a facet across multiple tensor types with respect to some scalar metrics.
-    If tt = None or List[TensorType] it returns a faceted plot, if tt = TensorType then a single figure plot.
+    If tt = TensorType then a single figure plot. (to do: implement for tt = None or List[TensorType] it returns a faceted plot, )
 
     Args:
          df (pd.DataFrame): the logs for the entire training run
@@ -280,7 +326,7 @@ class _ScalarLinePlotter:
         self.scalar_metric = [scalar_metric] if type(scalar_metric) == str else scalar_metric
         self.facet_kws = facet_kws
 
-    def _query(self, df: pd.DataFrame, layer: str, tt: TensorType) -> pd.DataFrame:
+    def _query(self, df: pd.DataFrame, layer: Union[List[str],str,Pattern], tt: Union[TensorType, List[TensorType], str,List[str], None]) -> pd.DataFrame:
         self.facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
         # handling scalar metric input -> should check that the provided metric is in the DF?
         self.scalar_metric = list(df.general_stats.columns) if self.scalar_metric == None else self.scalar_metric
@@ -346,10 +392,10 @@ class _ScalarLinePlotter:
 def scalar_line(
         df: pd.DataFrame,
         layer: Union[str, List[str], Pattern],
-        tt: Union[TensorType, List[TensorType], None],
+        tt: Union[TensorType, List[TensorType], str,List[str], None],
         scalar_metric: Union[str,List[str]], # By Default
         x=_q.IT,
-        col_wrap: int = None,
+        col_wrap: Union[int,None] = None,
         kind='line',
         figsize: Tuple[float,float] = (8,6),
         facet_kws: Union[Dict[Any,Any],None] = None,
@@ -429,14 +475,14 @@ class _ExpHistPlotter:
         self.all_leg_handles = {}
         self.kwargs = {**kwargs}
 
-    def _query(self,df: pd.DataFrame, layer: str, tt: TensorType, step: int):
+    def _query(self,df: pd.DataFrame, layer: Union[str,List[str],Pattern], tt: Union[TensorType, List[TensorType],str,List[str], None], step: int):
 
         # Filter rows in DF to those of interest (w.r.t. tt and layer type)
         self.facet, query = _gen_facet_query(layer=layer,tt=tt,df=df)
         # query and get the specific step (may need to change this if allowing for faceting on steps)
         df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
         # set logged dtypes
-        self.logged_dtypes = df.metadata.dtype.unique().tolist()
+        self.logged_dtypes = df.metadata.dtype.unique().tolist() #type: ignore
 
         return df 
 
@@ -490,19 +536,19 @@ class _ExpHistPlotter:
         # 
         if self.kind == 'kde':
             ax.set_xticks(act)
-            ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
-            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+            ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_getformatter(act))) # custom format for 2^n & inf
+            ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2f'))
             ax.set_xbound(lower=act[0],upper=act[-1])
         else:
-            ax.xaxis.set_major_formatter(plt.FuncFormatter(_getformatter(x)))
-            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+            ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_getformatter(x)))
+            ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter('%.2f'))
         if self.xtick_labelsize:
             ax.xaxis.set_tick_params(labelsize=self.xtick_labelsize,rotation=self.xtick_rotation)
             # Draw dtype annotations
         if self.dtype_annotation:
             _annotate_nf_details(
                 ax=ax,
-                x_values=x,
+                x_values=x, #type: ignore
                 fp_dtype=df_.metadata.dtype.item() if type(self.dtype_annotation) == bool else self.dtype_annotation,
                 dtype_info=self.dtype_info
                 )
@@ -520,7 +566,7 @@ class _ExpHistPlotter:
             else:
                 ax.legend(**self.legend_kws)
 
-    def _plot_facet(self, df: pd.DataFrame, figure: matplotlib.figure.Figure = None):
+    def _plot_facet(self, df: pd.DataFrame, figure: Union[matplotlib.figure.Figure,None] = None):
 
         # Internal Functions ...
         def _facet_plot_wrapper(*args,**kwargs):
@@ -563,16 +609,16 @@ class _ExpHistPlotter:
 def exp_hist(
         df: pd.DataFrame,
         layer: Union[str, List[str], Pattern],
-        tt: Union[TensorType, List[TensorType], None],
+        tt: Union[TensorType, List[TensorType],str,List[str], None],
         step: int,
         kind: Literal['bar','line','kde'] = 'bar',
         dtype_annotation: Union[bool, str, List[str]]= True,
         dtype_info: Tuple[bool,bool,bool] = (True,True,False), # Will figure out a way to make this slightly nicer!
-        col_wrap: int = None,
+        col_wrap: Union[int,None] = None,
         figsize: Tuple[int,int] = (10,10),
         xtick_labelsize: int = 12,
         xtick_rotation: int = 45, # can I make these kwargs will defaults??
-        fig_title: str = None,
+        fig_title: Union[str,None] = None,
         facet_kws: Union[Dict,None] = None,
         sp_kws: Union[Dict,None] = None,
         legend_kws: Union[Dict,None] = None,

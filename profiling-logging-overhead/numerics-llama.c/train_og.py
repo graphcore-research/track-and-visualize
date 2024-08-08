@@ -40,12 +40,13 @@ if module_path not in sys.path:
     sys.path.append(module_path)
 from nvis.log.torch import (stash_full_tensor, stash_scalar_stats, stash_hist ,stash_all_stats_and_hist)
 from nvis.log.torch import track
+import cProfile
 
 # -----------------------------------------------------------------------------
 # I/O
 
-# if __name__ == "__main__":
-if True:
+if __name__ == "__main__":
+# if True:
     out_dir = "out"
     eval_interval = 2000
     log_interval = 1
@@ -266,15 +267,17 @@ if True:
     running_mfu = -1.0
     numerics_data = []
 
+    
+    # with cProfile.Profile() as p:
     time_start = time.time()
     with track(
         module=model, #type: ignore
         grad=False, #
         optimiser=optimizer,
         track_weights=True,
-        stash_value=stash_hist,
+        stash_value=stash_all_stats_and_hist,
         async_offload=True,
-        offload_inc=20,
+        offload_inc=50,
         use_wandb=False) as tracker:
         while True:
             # determine and set the learning rate for this iteration
@@ -376,3 +379,8 @@ if True:
 
     if ddp:
         destroy_process_group()
+
+
+    # for np, param in model.named_parameters():
+    #     if 'norm' in np:
+    #         print(param)

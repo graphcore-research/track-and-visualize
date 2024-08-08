@@ -1,7 +1,7 @@
-from typing import Dict
+from typing import Dict, List
 import torch
 
-def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,torch.Tensor]:
+def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,List]:
     """
     Gets the exponent histogram for the tensor, any thing over/under max_exp/min_exp will be set to +/-inf
 
@@ -20,13 +20,13 @@ def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,tor
     e = torch.where(e < min_exp, (min_exp - 1) * torch.ones_like(e), e)
     e = torch.where(e > max_exp, (max_exp + 1) * torch.ones_like(e), e)
     # bincount wants all values to be >= 0, so shift
-    e -= min_exp - 1
+    e -= min_exp - 1 #No longer needed
     bins = torch.Tensor([i for i in range(min_exp-1, max_exp+2)]).to(e.dtype)
-    hist = torch.histc(e,bins=(max_exp+2)-(min_exp-1),min=min_exp,max=max_exp)
+    hist = torch.histc(e,bins=(max_exp+2)-(min_exp-1),min=0,max=max_exp-min_exp)
     
     return {
-        'hist': hist.cpu(), 
-        'bins' : bins.cpu()
+        'hist': hist.cpu().tolist(), 
+        'bins' : bins.cpu().tolist()
         }
 
 def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
@@ -45,14 +45,14 @@ def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
     rm2 = tensor.pow(2).mean().pow(1 / 2)
     abs_t = tensor.abs()
     return {
-            "mean": tensor.mean().cpu(),
-            "std": tensor.std().cpu(),
-            "mean_abs": abs_t.mean().cpu(),
-            "max_abs": abs_t.max().cpu(),
-            "min_abs": abs_t.min().cpu(),
-            "rm2": rm2.cpu(),
-            "rm4": tensor.div(rm2).pow_(4).mean().pow(1 / 4).mul(rm2).cpu(),
-            "rm8": tensor.div(rm2).pow_(8).mean().pow(1 / 8).mul(rm2).cpu(),
+            "mean": tensor.mean().cpu().item(),
+            "std": tensor.std().cpu().item(),
+            "mean_abs": abs_t.mean().cpu().item(),
+            "max_abs": abs_t.max().cpu().item(),
+            "min_abs": abs_t.min().cpu().item(),
+            "rm2": rm2.cpu().item(),
+            "rm4": tensor.div(rm2).pow_(4).mean().pow(1 / 4).mul(rm2).cpu().item(),
+            "rm8": tensor.div(rm2).pow_(8).mean().pow(1 / 8).mul(rm2).cpu().item(),
                 
             }
 
