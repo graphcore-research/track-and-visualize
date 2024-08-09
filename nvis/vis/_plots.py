@@ -107,8 +107,6 @@ def _annotate_nf_details(
         fp_dtype = [fp_dtype]
 
 
-
-
     # just a quick soln for having different annotation colours
     if color_map == None:
         color_map = plt.colormaps.get_cmap('Set1').resampled(len(fp_dtype) + offset).colors # type: ignore
@@ -232,10 +230,37 @@ def _generate_underlying_data(h: np.ndarray,e: np.ndarray, n : int = 1000000) ->
 
     return np.concatenate(empty), act
 
+
+class _BasePlotter:
+    def __init__(self) -> None:
+        pass
+
+    def _query(self):
+        raise NotImplementedError()
+    
+    def _plot_single(self):
+        raise NotImplementedError()
+    
+
+class _BaseFacetPlotter:
+    def __init__(self) -> None:
+        pass
+
+    def _query(self):
+        raise NotImplementedError()
+    
+    def _plot_single(self):
+        raise NotImplementedError()
+    
+    def _plot_facet(self):
+        raise NotImplementedError()
+    
+
+
 ################################### Plotting Methods #############################################
 
 
-class _GlobalHeatmapPlotter:
+class _GlobalHeatmapPlotter(_BasePlotter):
     def __init__(self, x: Tuple[Any,Any], y: Tuple[Any,Any], scalar_metric: str, **kwargs) -> None:
         self.x = x
         self.y = y
@@ -345,7 +370,7 @@ def scalar_global_heatmap(
     return fig
 
 
-class _ScalarLinePlotter:
+class _ScalarLinePlotter(_BaseFacetPlotter):
     def __init__(self,kind: str, x: Tuple[Any,Any], scalar_metric: Union[str,List[str]],col_wrap,facet_kws, **kwargs) -> None:
         self.kind = kind
         self.kwargs = {**kwargs}
@@ -483,7 +508,7 @@ def scalar_line(
     return fig
 
 
-class _ExpHistPlotter:
+class _ExpHistPlotter(_BaseFacetPlotter):
     def __init__(self, 
                  kind, 
                  sp_kws,
@@ -533,7 +558,7 @@ class _ExpHistPlotter:
             ax.bar(
             x=x,
             height=_df.value,
-            align='edge', # default
+            align=self.sp_kws.pop('align','edge'), # default
             **self.sp_kws
             )
         elif self.kind == 'line':
@@ -577,7 +602,6 @@ class _ExpHistPlotter:
             ax.xaxis.set_tick_params(labelsize=self.xtick_labelsize,rotation=self.xtick_rotation)
             # Draw dtype annotations
         if self.dtype_annotation:
-            logging.warning(f'DF: {df_.metadata.dtype.unique()}')
             _annotate_nf_details(
                 ax=ax,
                 x_values=x, #type: ignore
@@ -616,11 +640,6 @@ class _ExpHistPlotter:
             )
         
         g = g.map_dataframe(_facet_plot_wrapper)
-        
-        # # Add the legend - Want to overlap this some how.
-        # print(self.legend_kws, self.all_leg_handles)
-        # TO DO: 
-            # Add Legend 
 
         if self.dtype_annotation:
             # create legend
@@ -633,8 +652,7 @@ class _ExpHistPlotter:
             
         g.tight_layout()
         g.set_titles("{col_var[1]} = '{col_name}'")
-        # print(g.figure.get_figwidth())
-        ...
+
 
 
 # HistoGram Plots - BarPlot
@@ -645,7 +663,7 @@ def exp_hist(
         step: int,
         kind: Literal['bar','line','kde'] = 'bar',
         dtype_annotation: Union[bool, str, List[str]]= True,
-        dtype_info: Tuple[bool,bool,bool] = (True,True,False), # Will figure out a way to make this slightly nicer!
+        dtype_info: Tuple[bool,bool,bool] = (True,True,True), # Will figure out a way to make this slightly nicer!
         col_wrap: Union[int,None] = None,
         figsize: Tuple[int,int] = (10,10),
         xtick_labelsize: int = 12,
@@ -709,10 +727,6 @@ def exp_hist(
     
     _validate_df_hash(df)
     
-
-    # get the set of logged dtypes
-
-
     plotter = _ExpHistPlotter(
         kind=kind,
         sp_kws=sp_kws,
@@ -759,4 +773,3 @@ def exp_hist(
         return fig
 
 
-# Heatmaps 
