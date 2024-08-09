@@ -64,6 +64,7 @@ from torch import Tensor, nn
 from copy import deepcopy
 
 from ..common._tracker import BaseTracker
+from ..common._write import lf_to_pickle
 from .stash_functions import stash_full_tensor
 from ..common._types import Stash, Event, StashFn
 import randomname
@@ -116,8 +117,8 @@ NamePattern = Union[None, Pattern[str], str]
 
 
 class TorchTracker(BaseTracker):
-    def __init__(self, stash: Callable[[Event], Stash], async_offload: bool, only_stash_during_training: bool, offload_inc: int, name: str | None = None, init_step: int | None = None):
-        super().__init__(stash, name, init_step, async_offload, offload_inc)
+    def __init__(self, stash: Callable[[Event], Stash], async_offload: bool, only_stash_during_training: bool, offload_inc: int,offload_fn: Callable, use_wandb:bool, name: str | None = None, init_step: int | None = None):
+        super().__init__(stash, name, init_step, async_offload, offload_inc, offload_fn, use_wandb)
         self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
         self._model: Union[torch.nn.Module,None] = None # torch specific
         self.only_stash_during_training = only_stash_during_training
@@ -239,8 +240,6 @@ class TorchTracker(BaseTracker):
 
 
     def step(self):
-        # write stats to file?
-        # clear stashes
         if self._model:
             self._model_weights_hook()
         
@@ -258,6 +257,7 @@ def track(
     stash: Optional[StashFn] = None,
     async_offload: bool = False,
     offload_inc: int = 10,
+    offload_fn: Callable = lf_to_pickle,
     use_wandb: bool = False,
     only_stash_during_training = True,
     ) -> TorchTracker:
@@ -269,6 +269,8 @@ def track(
         get_stash_fn(stash_value=stash_value, stash=stash),
         async_offload=async_offload,
         only_stash_during_training=only_stash_during_training,
+        offload_fn=offload_fn,
+        use_wandb=use_wandb,
         offload_inc=offload_inc)
     
     tracker.register_all(module, grad=grad, include=include, exclude=exclude)
