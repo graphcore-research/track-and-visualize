@@ -11,8 +11,8 @@ from ..log.common._errors import SchemaException
 
 # For generating random DF's in future
 md_cols = list(map(lambda e: (e, 'metadata'), ['name','type','grad','step','dtype']))
-gt_cols = list(map(lambda e: (e, 'general_stats'), [i for i in range(5)]))
-exp_cols = list(map(lambda e: (e, 'exponent_count'), [i for i in range(5)]))
+gt_cols = list(map(lambda e: (e, 'scalar_stats'), [i for i in range(5)]))
+exp_cols = list(map(lambda e: (e, 'exponent_counts'), [i for i in range(5)]))
 
 def test_read_df_from_pickle():
     df_path = 'test-data/numerics_df_v3.pkl'
@@ -26,7 +26,7 @@ def test_read_df_from_pickle():
         read_pickle(invalid_df_path)
 
     with pytest.raises(SchemaException) as e_info:
-        _utils._validate_schema(df.metadata)
+        _utils._validate_schema(df.metadata) # type: ignore
 
     with pytest.raises(SchemaException) as e_info:
         _utils._validate_schema(df.drop(columns='exponent_count'),debug=True)
@@ -38,8 +38,3 @@ def test_read_df_from_pickle():
         _utils._validate_schema(df.drop(columns=[('exponent_count',float('inf'))]))
 
         
-
-
-# Plot Test Cases:
-    # src.read_pickle() -> Pass
-    # pd.DataFrame -> Fail

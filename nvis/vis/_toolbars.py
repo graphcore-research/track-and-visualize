@@ -50,7 +50,8 @@ def get_toolbar(**kwargs) -> Dict[str,widgets.Widget]:
         toolbar_components['tt'] = widgets.Dropdown(
             options=df.metadata.tensor_type.unique().tolist(),
             value=tt)
-    
+        
+    # scalar metric
     if 'scalar_metric' in kwargs.keys():
         scalar_metric: Union[List[str],str, None] = kwargs.get('scalar_metric')
         df: Union[pd.DataFrame,None] = kwargs.get('df')
@@ -80,6 +81,7 @@ def get_toolbar(**kwargs) -> Dict[str,widgets.Widget]:
         else:
             raise Exception('Invalid Arguments provided to generate widget for scalar_metric')
     
+    # layer
     if 'layer' in kwargs.keys():
         layer: Union[List[str],str, None] = kwargs.get('layer')
         assert type(layer) in [list,str], f'scalar_metric must be of type str or list[str] not: {type(layer)}'
@@ -103,6 +105,7 @@ def get_toolbar(**kwargs) -> Dict[str,widgets.Widget]:
                 value = value
             )
     
+    # step
     if 'step' in kwargs.keys():
         step: Union[int, None] = kwargs.get('step')
         assert type(step) == int, f"step must be an int not {type(step)}"

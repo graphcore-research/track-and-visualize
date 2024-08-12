@@ -21,8 +21,8 @@ def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,Lis
     e = torch.where(e > max_exp, (max_exp + 1) * torch.ones_like(e), e)
     # bincount wants all values to be >= 0, so shift
     e -= min_exp - 1 #No longer needed
-    bins = torch.Tensor([i for i in range(min_exp-1, max_exp+2)]).to(e.dtype)
-    hist = torch.histc(e,bins=(max_exp+2)-(min_exp-1),min=0,max=max_exp-min_exp)
+    bins = torch.Tensor([i for i in range(min_exp-2, max_exp+1)]).to(e.dtype)
+    hist = torch.histc(e.to(tensor.dtype),bins=(max_exp+2)-(min_exp-1),min=0,max=max_exp-min_exp)
     
     return {
         'hist': hist.cpu().tolist(), 
