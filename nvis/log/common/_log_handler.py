@@ -1,7 +1,9 @@
+import logging
 import os
 import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple, Union, Any
+import warnings
 import numpy as np
 import pandas as pd
 from ._types import Stash
@@ -73,7 +75,9 @@ def global_stash_to_logframe(global_stash: Dict[int, List[Dict]]) -> pd.DataFram
                 df_dict[META('step')].append(step)
 
             for key, value in stash.items():
-
+                # this is the eqivalent of .first_value
+                if type(value) in [tuple,list] and len(value) >= 1:
+                    value: Dict = value[0]
 
                 if key != 'value':
                     if META(key) not in df_dict.keys():
@@ -82,6 +86,7 @@ def global_stash_to_logframe(global_stash: Dict[int, List[Dict]]) -> pd.DataFram
                         df_dict[META(key)].append(value)
 
                 else:
+                    assert type(value) == dict,f'{key} needs to be a dict not {type(value)}, {value}'
                     for value_type, nested_dict in value.items():
                         if value_type == 'exp_hist':
                             hist_list_lens = []
@@ -107,6 +112,9 @@ def global_stash_to_logframe(global_stash: Dict[int, List[Dict]]) -> pd.DataFram
                                     df_dict[SCA(stat)] = [stat_value]
                                 else:
                                     df_dict[SCA(stat)].append(stat_value)
+                        elif value_type == 'full_tensor':
+                            warnings.warn('Full tensors cannot be added to a log frame, therefore it is being skipped')
+
                         else:
                             # assert nested_dict.dim() == 0, f'Scalar Stats must be Scalar Tensors, i.e. dim == 0, not {nested_dict.dim()}'
                             if SCA(value_type) not in df_dict.keys():
