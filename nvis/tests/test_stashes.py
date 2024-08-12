@@ -3,7 +3,7 @@ import torch
 import math
 import numpy as np
 
-from ..log.torch import stash_all_stats_and_hist,stash_hist,stash_scalar_stats
+from ..log.torch import stash_hist,stash_scalar_stats, stash_full_tensor
 
 B,N,M = 1,1000,1000
 
@@ -68,3 +68,14 @@ def test_stash_scalar_stats_cuda():
 
     for k,v in sn.items():
         assert math.isfinite(v), f'{k} does not have a valid value, value = {v}'
+
+
+def test_stash_tensors_cpu():
+    tn = torch.randn((B,N,M))
+
+    assert torch.equal(stash_full_tensor(tn),tn)
+
+def test_stash_tensors_cuda():
+    tn = torch.randn((B,N,M)).to('cuda')
+
+    assert torch.equal(stash_full_tensor(tn),tn.cpu())
