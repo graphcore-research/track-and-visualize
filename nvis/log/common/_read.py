@@ -8,11 +8,16 @@ from pandas._typing import (
     CompressionOptions, ReadPickleBuffer, FilePath, StorageOptions, 
     ReadBuffer, DtypeBackend,IndexLabel, UsecolsArgType, ReadCsvBuffer, 
     DtypeArg, CSVEngine)
-
+from typing import TypeVar
 from ._utils import _validate_schema, _dataframe_migration
+from .wandb_int import download_wandb_artifact
+
+WandbArtifactFullName = str
+
 
 def read_pickle(
-        filepath_or_buffer: FilePath | ReadPickleBuffer,
+        filepath_or_buffer: FilePath | ReadPickleBuffer | WandbArtifactFullName,
+        from_wandb: bool =False,
         schema_map: Any = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions | None = None) -> _pd.DataFrame:
@@ -22,7 +27,8 @@ def read_pickle(
         which is required by downstream functions.
 
         Args:
-        filepath_or_buffer (pd.FilePath | ReadPickleBuffer ): String, path object (implementing os.PathLike[str]), or file-like object implementing a binary readlines() function. Also accepts URL. URL is not limited to S3 and GCS
+        filepath_or_buffer (pd.FilePath | ReadPickleBuffer | WandbArtefactFullName): String, path object (implementing os.PathLike[str]), or file-like object implementing a binary readlines() function. Also accepts URL. URL is not limited to S3 and GCS
+        from_wandb (bool): Retrieve the logframe artifact(s) from wandb (filepath_or_buffer is where you put the WandB artifact fullname)
         schema_map (): Place holder, currently not used.
         compression (pd.CompressionOptions)
         storage_options ()
@@ -31,10 +37,16 @@ def read_pickle(
             pd.DataFrame
     """
 
-    # Read -> df as per usual
-    df = _pd.read_pickle(filepath_or_buffer,
-                    compression,
-                    storage_options)
+    if from_wandb:
+        assert type(filepath_or_buffer) == str, f'When pulling an artifact from wandb, filepath_or_buffer must be a str, not {type(filepath_or_buffer)}'
+        df = download_wandb_artifact(artifact_fullname=filepath_or_buffer)
+
+
+    else:
+        # Read -> df as per usual
+        df = _pd.read_pickle(filepath_or_buffer,
+                        compression,
+                        storage_options)
     
     # if a schema_map is provided migrate DF to LF schema
     if schema_map:
@@ -152,10 +164,10 @@ def read_parquet(
         engine,
         columns,
         storage_options,
-        use_nullable_dtypes,
-        dtype_backend,
-        filesystem,
-        filters,
+        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
+        filesystem=filesystem,
+        filters=filters,
         **kwargs
     )
     

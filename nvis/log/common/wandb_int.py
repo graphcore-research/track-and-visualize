@@ -1,99 +1,42 @@
+
+# import wandb.errors
+# import wandb.sdk
+from typing import Callable, List
+from pathlib import Path
 import wandb
-import wandb.errors
-import wandb.sdk
+import pandas as pd
+import os
+from ._log_handler import combine_incremental_dfs
 
-# need to check if logged in
-login = wandb.login()
+def download_wandb_artifact(artifact_fullname: str, pd_read_fn: Callable = pd.read_pickle) -> pd.DataFrame:
+    """
+        Args:
+            artifact_fullname (str) : The fullname of the artefact account belongs to.
 
-class WeightsAndBiasHandler:
+            Can be copied from a URL that matches this:
+            `https://wandb.ai/<entity>/<project-name>/artifacts/nvis-logframe/<artifact-alias>/<artifact-version>/overview`
+            
 
-    def __init__(self,**kwargs) -> None:
-        """
-            Args:
-                **kwargs () : All kwargs for wandb.init, to initialise the run 
-
-            Returns:
-                None
-        
-        """
-        # check if wandb is logged in
-        if wandb.login(verify=True):
-            ...
-
-            wandb.errors.AuthenticationError
-
-        self.run: wandb.sdk.wandb_run.Run =  wandb.init(
-            **kwargs
-        )
-        pass
-
-    def log(self, data, step):
-        """
-            Log dict to wandb
-        """
-        wandb.log(
-            data = data,
-            step = step
-        )
-        ...
+        Returns:
+            str (path to root directory where artifacts have been downloaded)
     
-    def log_artifact(self):
-        """
-            Log artifact to wandb
-        """
+    """
 
-        wandb.log_artifact(
+    api = wandb.Api()
+    artifact = api.artifact(artifact_fullname)
 
-        )
-
-        wandb.Artifact()
-        ...
+    outdir = artifact.download()
+    p = Path(outdir) #type: ignore
+    artifacts: List[str] = os.listdir(outdir)
 
 
-# WorkFlow, 
-    # login
-    # init run
-    # offload training stats with regular wandb.log
-    # offload numerics stats with wandb.log_artifact
+    if len(artifacts) > 1:
+        artifacts.sort(key=lambda x: int(x.split('-')[0]))
+        # sort by step (might be brittle doing this!)
+        # read_pickle should maybe be an argument?
+        all_lfs = [pd_read_fn(p/file) for file in artifacts]
 
+        return pd.concat(all_lfs,ignore_index=True)
 
-# # need to login
-# wandb.login()
-
-# run = wandb.init(
-#     # Set the project where this run will be logged
-#     project="my-awesome-project",
-#     # Track hyperparameters and run metadata
-#     config={
-#         "learning_rate": 0.01,
-#         "epochs": 10,
-#     },
-# )
-
-
-
-# run = wandb.init(
-#     # Set the project where this run will be logged
-#     project="my-awesome-project",
-#     # Track hyperparameters and run metadata
-#     config={
-#         "learning_rate": lr,
-#         "epochs": epochs,
-#     },
-# )
-
-# offset = random.random() / 5
-# print(f"lr: {lr}")
-
-# # simulating a training run
-# for epoch in range(2, epochs):
-#     acc = 1 - 2**-epoch - random.random() / epoch - offset
-#     loss = 2**-epoch + random.random() / epoch + offset
-#     print(f"epoch={epoch}, accuracy={acc}, loss={loss}")
-#     wandb.log({"accuracy": acc, "loss": loss})
-
-
-# # Artifacts
-
-# run = wandb.init(project = "artifacts-example", job_type = "add-dataset")
-# run.log_artifact(artifact_or_path = "./dataset.h5", name = "my_data", type = "dataset" )
+    else:
+        return pd_read_fn(p/artifacts[0])

@@ -4,6 +4,7 @@ import concurrent.futures
 import os
 from pathlib import Path
 import pickle
+import traceback
 from types import TracebackType
 
 import pandas as pd
@@ -25,13 +26,20 @@ import time
 
 def async_wrapper(f: Callable,name: str, step: int, object: ByteString):
     # function for writing to disk  
-    df = global_stash_to_logframe(msgpack.unpackb(object,strict_map_key=False)) #type: ignore
+    try:
+        object = msgpack.unpackb(object,strict_map_key=False)
+    except Exception:
+        logger.warning(traceback.format_exc())
+    try:
+        df = global_stash_to_logframe(object) #type: ignore
+    except Exception as e:
+        logger.warning(object)
+        logger.warning(e)
     # writes to disk
     f(name,step,df)
 
     # only if wandb is being used..
     summary_dict = summarise_logframe(df)
-    # logger.warning(f'{os.getpid()}:{summary_dict}')
     _write_summary_bin_log(name=name, summary_dict=summary_dict)
 
 
@@ -54,10 +62,12 @@ class BaseTracker:
         self.async_offload = async_offload
         self.offload_fn = offload_fn# could make this an init argument?
         self.use_wandb = use_wandb
+        self.out_path = None
 
         if self.use_wandb:
 
             self.wandb_run = wandb.run
+            self._artifact = wandb.Artifact(name=self._name, type=f"{_libname}-logframe")
 
             if not self.wandb_run: 
                 raise Exception('No wandb run has been initialised and you have selected to use_wandb == True. Please initialise wandb run.')
@@ -90,15 +100,25 @@ class BaseTracker:
         # check if global_stash is empty, 
         # if it isn't offload stash to disk/wandb
         if self._global_stash:
-            self.offload_global_stash()
+            self.offload_global_stash(final=True)
+
         # wait for all background processes 
         # to end before leaving tracker
         if self.async_offload:
             self._executor.shutdown()
+            if self.use_wandb and self.wandb_run:
+                p = Path(f"./{_libname}/{self._name}/lf")
+                self._artifact.add_dir((str(p)))
+
+        if self.use_wandb and self.wandb_run:
+            self.wandb_run.log_artifact(self._artifact)
 
         output_path = combine_incremental_dfs(self._name)
+        self.out_path = output_path
         print(f'The output LogFrame is available at: {output_path}')
         nuke_intermediate_logframes(self._name)
+
+        
 
     def __str__(self) -> str:
         return f"Tracker(stashes={len(self)})"
@@ -121,31 +141,35 @@ class BaseTracker:
     def move_to_global_stash(self):
         self._global_stash[self._step] = [stash.__dict__ for stash in self.stashes]
 
-    def offload_global_stash(self):
+    def offload_global_stash(self,final:bool = False):
         # unimplemented as of yet, but where the stashes are converted to DF/Dict and offloaded to disk or sent to wandb
         # this should be configurable?
         
         if self.async_offload:
             self.launch_background_process()
 
-            # a, b = self._read_summary_bin_log()
-
-            # if self.use_wandb and self.wandb_run and a:
-                # ...
-
-
         else:
             df = global_stash_to_logframe(self._global_stash)
-            self.offload_fn(self._name,self._step,df)
+            out = self.offload_fn(self._name,self._step,df)
             self.evict_global_stash()
             if self.use_wandb and self.wandb_run:
                 
                 summary_dict = summarise_logframe(df)
-                
                 # Log numerics stats without incremeting step
-                wandb.log(
-                    summary_dict[self.wandb_run.step],
-                    step=self.wandb_run.step)
+                if final:
+                    wandb.log(
+                        summary_dict[self._step-1],
+                        step=self.wandb_run.step-1)
+                    
+                else:
+                    wandb.log(
+                        summary_dict[self.wandb_run.step],
+                        step=self.wandb_run.step)
+                    
+                self._artifact.add_file(str(out))
+                    
+                
+                
                 
 
     def launch_background_process(self):
@@ -160,13 +184,10 @@ class BaseTracker:
         with open(out,'rb') as f:
             summary_bytes = pickle.load(f)
 
-        # logging.warning(summary_bytes)
-
         if summary_bytes != self.summary_bytes:
             # update summary bytes & deserialize
             self.summary_bytes = summary_bytes
             summary_dict: Dict = summary_bytes 
-            # logging.warning(summary_dict)
 
             return (True,summary_dict)
 
@@ -188,7 +209,7 @@ class BaseTracker:
 
 
         if self.async_offload and self.use_wandb and self.wandb_run:
-            if self._step % self._offload_inc == (self._offload_inc // 2):
+            if self._step % self._offload_inc == self._offload_inc // 2:
                 a, b = self._read_summary_bin_log()
                 if a and b:
                     if self.wandb_run.step in b.keys():
@@ -196,6 +217,8 @@ class BaseTracker:
                         wandb.log(
                         b[self.wandb_run.step],
                         step=self.wandb_run.step)
+
+                
                 
         # increment step
         self._step += 1

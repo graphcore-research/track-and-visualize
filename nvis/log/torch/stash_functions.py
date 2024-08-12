@@ -22,7 +22,7 @@ def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,Lis
     e = torch.where(e > max_exp, (max_exp + 1) * torch.ones_like(e), e)
 
     bins = torch.Tensor([i for i in range(min_exp-1, max_exp+2)]).to(e.dtype)
-    hist = torch.histc(e.to(tensor.dtype),bins=(max_exp+2)-(min_exp-1),min=min_exp-1,max=max_exp+1)
+    hist = torch.histc(e.to(tensor.dtype),bins=(max_exp+2)-(min_exp-1),min=min_exp-1,max=max_exp+1).int()
     
     return {
         'hist': hist.cpu().tolist(), 
@@ -37,7 +37,10 @@ def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
             t (torch.Tensor): The tensor you're getting the histogram from
 
         Returns:
-            Dict : A dictionary of the containing the scalar tensors for various statistics
+            Dict : A dictionary of the containing the scalar values for various statistics
+            ```python
+            {'stat1' : 0.0,...}
+            ```
     
     
     """
@@ -58,10 +61,35 @@ def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
 
 # Should refactor this slightly - as exponent hist is always a nested dict, yet scalar_stats is not (and there's no reason for this behaviour)
 
-def stash_hist(tensor: torch.Tensor) -> Dict:
-    return {'exp_hist': exp_histogram(tensor)}
+def stash_hist(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict:
+    """
+        Get the exponent histogram for the Tensor, values under min_exp and over max_exp will be set to +/- infitity.
+
+        Args:
+            tensor (torch.Tensor): The tensor you're getting the histogram from
+
+        Returns:
+            Dict : A dictionary of the containing the scalar statistics and the Exponent Histogram for the tensor.
+            ```python
+            {'exp_hist' : {'hist' : [...], 'bins' : [... ]}}
+            ```
+    
+    """
+    return {'exp_hist': exp_histogram(tensor,min_exp,max_exp)}
 
 def stash_all_stats_and_hist(tensor: torch.Tensor) -> Dict:
+    """
+        The default stash value function, and the one which is most compatible  with the visualisation library.
+
+        Args:
+            tensor (torch.Tensor): The tensor you're getting the the stastics for.
+
+        Returns:
+            Dict : A dictionary of the containing the scalar statistics and the Exponent Histogram for the tensor.
+            ```python
+            {'scalar_stats' {'stat1' : 0.0,...}, 'exp_hist' : {'hist' : [...], 'bins' : [... ]}}
+            ```
+    """
     
     return {
         'scalar_stats' : stash_scalar_stats(tensor=tensor),
@@ -69,6 +97,6 @@ def stash_all_stats_and_hist(tensor: torch.Tensor) -> Dict:
     }
 
 
-def stash_full_tensor(tensor: torch.Tensor) -> torch.Tensor:
-    return tensor.detach().cpu().clone()
+def stash_full_tensor(tensor: torch.Tensor) -> Dict[str,torch.Tensor]:
+    return {'full_tensor' : tensor.detach().cpu().clone()}
 

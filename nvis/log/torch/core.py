@@ -1,48 +1,7 @@
 # Copyright (c) 2024 Graphcore Ltd. All rights reserved.
 # Code adapated from tensor_tracker
 
-"""Utility for tracking activations and gradients at `nn.Module` outputs.
-
-Use `track` to start tracking a module & submodules. Then use the original module
-as usual. Your `Tracker` will be filled with a list of `Stash`es, containing
-copies of fwd/bwd tensors at (sub)module outputs. (Beware, this can consume
-a lot of memory.)
-
-Usage ([notebook](usage.html)):
-
-```
-with tensor_tracker.track(model) as tracker:
-    model(inputs).backward()
-
-print(list(tracker))
-# => [Stash(name="0.linear", type=nn.Linear, grad=False, value=tensor(...)),
-#     ...]
-
-display(tracker.to_frame())  # requires 'pandas'
-```
-
-Advanced usage:
-
- - Filter modules based on name:
-   `track(include="<regex>", exclude="<regex>")`
-
- - Pre-transform tracked tensors to save memory:
-   `track(stash_value=lambda t: t.std().detach().cpu())`
-
- - Customise tracked state:
-   `track(stash=lambda event: ...)`
-
- - Manually register/unregister hooks:
-  `tracker = Tracker(); tracker.register(...); tracker.unregister()`
-
-See also: [example of
-visualising transformer activations & gradients using UMAP](example.html).
-"""
-
-import dataclasses
-import logging
 import re
-from dataclasses import dataclass
 from functools import partial
 from types import TracebackType
 from typing import (
@@ -61,15 +20,11 @@ from typing import (
 
 import torch.utils.hooks
 from torch import Tensor, nn
-from copy import deepcopy
 
 from ..common._tracker import BaseTracker
 from ..common._write import lf_to_pickle
-from .stash_functions import stash_full_tensor
+from .stash_functions import stash_all_stats_and_hist
 from ..common._types import Stash, Event, StashFn
-import randomname
-from pathlib import Path
-import pickle
 
 
 TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
@@ -109,7 +64,7 @@ def get_stash_fn(
         raise ValueError("Cannot provide StashValueFn and StashFn to get_stash_fn()")
     if stash:
         return stash
-    return partial(default_stash, stash_value=stash_value or stash_full_tensor)
+    return partial(default_stash, stash_value=stash_value or stash_all_stats_and_hist)
 
 
 NamePattern = Union[None, Pattern[str], str]
@@ -117,7 +72,13 @@ NamePattern = Union[None, Pattern[str], str]
 
 
 class TorchTracker(BaseTracker):
-    def __init__(self, stash: Callable[[Event], Stash], async_offload: bool, only_stash_during_training: bool, offload_inc: int,offload_fn: Callable, use_wandb:bool, name: str | None = None, init_step: int | None = None):
+    def __init__(self, 
+                 stash: Callable[[Event], Stash], 
+                 async_offload: bool, 
+                 only_stash_during_training: bool, 
+                 offload_inc: int,offload_fn: Callable, 
+                 use_wandb:bool, name: str | None = None, 
+                 init_step: int | None = None):
         super().__init__(stash, name, init_step, async_offload, offload_inc, offload_fn, use_wandb)
         self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
         self._model: Union[torch.nn.Module,None] = None # torch specific
@@ -129,10 +90,6 @@ class TorchTracker(BaseTracker):
         exc: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        # logging.warning('TRACKER GONE OUT OF SCOPE')
-        # # check if global_stash is empty, if it isn't offload stash to disk/wandb
-        # if self._global_stash:
-        #     self.offload_global_stash()
         self.unregister()
         super().__exit__(exc_type,exc,traceback)
 
@@ -248,34 +205,74 @@ class TorchTracker(BaseTracker):
             
 def track(
     module: nn.Module,
-    grad: bool = True,
-    optimiser: Union[torch.optim.Optimizer,None] = None, #type: ignore
+    track_gradients: bool = True,
+    optimizer: Union[torch.optim.Optimizer,None] = None, #type: ignore
     track_weights: bool = True,
     include: NamePattern = None,
     exclude: NamePattern = None,
     stash_value: Optional[StashValueFn] = None,
-    stash: Optional[StashFn] = None,
     async_offload: bool = False,
     offload_inc: int = 10,
-    offload_fn: Callable = lf_to_pickle,
+    offload_type: Literal['.pkl'] = '.pkl',
     use_wandb: bool = False,
     only_stash_during_training = True,
+    init_step =None,
     ) -> TorchTracker:
+    """
+        Function for initialising the Pytorch Tensor Tracker context manager.
+
+        By default it tracks the stastics for the what we refer to as the Activations (i.e. the outputs of the forward method in the nn module). However it can also track 
+        gradients, weights and optimiser state. At the end of training it will write all the logs to a LogFrame (a `pd.DataFrame` which conforms to the schema outline in our docs) 
+
+
+        ```python
+            with track(...) as tracker:
+                #Your training loop goes here
+                for i in range(max_its):
+                    # fwd & bwd pass
+                    tracker.step() # at the end of your loop
+        
+        ```
+
+        Args:
+            module (nn.Module): The top level module you wish to track, this would typically be the root class your use to define your model, the tracker will then recursively find all the submodules and add tracking hooks to their respective tensors
+            track_gradients (bool): Whether or not you wish to track the gradients.
+            optimizer (torch.optim.Optimizer | None): If you wish to track the optimiser state, pass it as an argument.
+            track_weights (bool): Whether or not to track the models weights/parameters.
+            include (None | Pattern[str] | str) : A module or modules (via regex) you wish to track.
+            exclude (None | Pattern[str] | str) : A module or modules (via regex) you wish not to track.
+            stash_value (StashValueFn): This is the statistics you wish to track, it defaults to `stash_all_stats_and_hist`, you can provide a custom fn here however inspect the other stash_fns to see the required args/returns values.
+            async_offload (bool): If true the set of stashes since last offloaded are serialised and passed to a seperate python process to be converted to a Logframe (currently a very limited reduction in overhead, but working on improving it)
+            offload_inc (int): How frequently you wish to the stashes from memory to disk, i.e. offload more frequently to minimise Torch Tracker's memory usage. If using wandb, this value should be the same (or a multiple) of the increment being used to call `wandb.log'
+            offload_type (Literal['.pkl']): The file format you wish to write the LogFrame(s) to disk as.
+            use_wandb (bool): If you wish to push the Logframes as artifacts and get summary numerics statistic in wandb. (`offload_inc` should be the same (or a multiple) of the increment being used to call `wandb.log')
+            only_stash_during_training (bool): Torch Tracker can track statistics for Activations when the model is in eval mode (the default behaviour is for this not to be the case and only track activations during training)
+            init_step (int): The tracker has an internal step property for assigning statistics to the correct iteration, if `init_step == None`, defaults to zero, else init_step (if you are continuing from a checkpoint for exampkle)
+
+
+        Returns:
+            TorchTracker (The context manger)
+    
+    
+    """
 
     # assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
     # Check if wandb is logged in and a run has been initialised
 
+    offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
+
     tracker = TorchTracker(
-        get_stash_fn(stash_value=stash_value, stash=stash),
+        get_stash_fn(stash_value=stash_value, stash=None),
         async_offload=async_offload,
         only_stash_during_training=only_stash_during_training,
-        offload_fn=offload_fn,
+        offload_fn=offload_fn[offload_type],
+        init_step=init_step,
         use_wandb=use_wandb,
         offload_inc=offload_inc)
     
-    tracker.register_all(module, grad=grad, include=include, exclude=exclude)
-    if optimiser:
-        tracker.register_optimiser(optimiser, param_names = [m for m,p in module.named_parameters()])
+    tracker.register_all(module, grad=track_gradients, include=include, exclude=exclude)
+    if optimizer:
+        tracker.register_optimiser(optimizer, param_names = [m for m,p in module.named_parameters()])
     if track_weights:
         tracker.register_weights(model=module)
     return tracker

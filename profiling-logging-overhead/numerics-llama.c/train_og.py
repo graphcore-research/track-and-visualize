@@ -41,22 +41,25 @@ if module_path not in sys.path:
 from nvis.log.torch import (stash_full_tensor, stash_scalar_stats, stash_hist ,stash_all_stats_and_hist)
 from nvis.log.torch import track
 import cProfile
+import wandb
 
 # -----------------------------------------------------------------------------
 # I/O
 
 if __name__ == "__main__":
+    wandb.login()
+    run = wandb.init(project='nvis-test')
 # if True:
     out_dir = "out"
-    eval_interval = 2000
+    eval_interval = 10
     log_interval = 1
     eval_iters = 100
     eval_only = False  # if True, script exits right after the first eval
     always_save_checkpoint = False  # if True, always save a checkpoint after each eval
     init_from = "scratch"  # 'scratch' or 'resume'
     # wandb logging
-    wandb_log = False  # disabled by default
-    wandb_project = "llamac"
+    wandb_log = True  # disabled by default
+    wandb_project = "nvis-test"
     wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # data
     batch_size = 1  # if gradient_accumulation_steps > 1, this is the micro-batch size
@@ -73,7 +76,7 @@ if __name__ == "__main__":
     # adamw optimizer
     gradient_accumulation_steps = 1  # used to simulate larger batch sizes
     learning_rate = 1e-4  # max learning rate
-    max_iters = 100  # total number of training iterations
+    max_iters = 1000  # total number of training iterations
     weight_decay = 1e-1
     beta1 = 0.9
     beta2 = 0.95
@@ -218,7 +221,7 @@ if __name__ == "__main__":
         # Ignore the `freqs_cis` buffer so that DDP does not broadcast it at
         # construction time since NCCL does not support `ComplexFloat`
         prefix = "_orig_mod." if compile else ""
-        model._ddp_params_and_buffers_to_ignore = {prefix + "freqs_cis"}
+        model._ddp_params_and_buffers_to_ignore = {prefix + "freqs_cis"} # type: ignore
         model = DDP(model, device_ids=[ddp_local_rank])
 
     # helps estimate an arbitrarily accurate loss over either split using many batches
@@ -256,7 +259,7 @@ if __name__ == "__main__":
     # logging
     if wandb_log and master_process:
         import wandb
-        wandb.init(project=wandb_project, name=wandb_run_name, config=config)
+        wandb.init(project=wandb_project, config=config)
 
     # training loop
     train_batch_iter = iter_batches(split="train")
@@ -277,8 +280,8 @@ if __name__ == "__main__":
         track_weights=True,
         stash_value=stash_all_stats_and_hist,
         async_offload=True,
-        offload_inc=50,
-        use_wandb=False) as tracker:
+        offload_inc=eval_interval,
+        use_wandb=True) as tracker:
         while True:
             # determine and set the learning rate for this iteration
             lr = get_lr(iter_num) if decay_lr else learning_rate
@@ -288,35 +291,19 @@ if __name__ == "__main__":
             # evaluate the loss on train/val sets and write checkpoints
             if iter_num % eval_interval == 0 and master_process:
                 losses = estimate_loss()
-                print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+                logging.warning(losses)
+                # print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
                 if wandb_log:
                     try:
                         wandb.log(
                             {
-                                "iter": iter_num,
-                                "tokens": iter_num * tokens_per_iter,
                                 "loss/train": losses["train"],
                                 "loss/val": losses["val"],
-                                "lr": lr,
-                                "mfu": running_mfu * 100,  # convert to percentage
                             }, step = iter_num
                         )
+                        logging.warning('wandb log succesful')
                     except Exception as e:
-                        print(f"logging to wandb failed: {e}")
-                if losses["val"] < best_val_loss or always_save_checkpoint:
-                    best_val_loss = losses["val"]
-                    if iter_num > 0:
-                        checkpoint = {
-                            "model": raw_model.state_dict(),
-                            "optimizer": optimizer.state_dict(),
-                            "model_args": model_args,
-                            "iter_num": iter_num,
-                            "best_val_loss": best_val_loss,
-                            "config": config,
-                        }
-                        print(f"saving checkpoint to {out_dir}")
-                        torch.save(checkpoint, os.path.join(out_dir, "ckpt.pt"))
-                        model_export(raw_model, os.path.join(out_dir, "model.bin"), version=0)
+                        logging.warning(f"logging to wandb failed: {e}")
             if iter_num == 0 and eval_only:
                 break
 

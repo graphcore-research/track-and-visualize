@@ -73,9 +73,9 @@ def test_stash_scalar_stats_cuda():
 def test_stash_tensors_cpu():
     tn = torch.randn((B,N,M))
 
-    assert torch.equal(stash_full_tensor(tn),tn)
+    assert torch.equal(stash_full_tensor(tn)['full_tensor'],tn)
 
 def test_stash_tensors_cuda():
     tn = torch.randn((B,N,M)).to('cuda')
 
-    assert torch.equal(stash_full_tensor(tn),tn.cpu())
+    assert torch.equal(stash_full_tensor(tn)['full_tensor'],tn.cpu())

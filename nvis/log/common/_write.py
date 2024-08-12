@@ -8,7 +8,7 @@ import msgpack
 import logging
 logger = logging.getLogger(__name__)
 import os
-def lf_to_pickle(name: str, step: int, object: pd.DataFrame) -> None:
+def lf_to_pickle(name: str, step: int, object: pd.DataFrame) -> Path:
     """
         Write the intermediate logrames to disk
     """
@@ -18,6 +18,8 @@ def lf_to_pickle(name: str, step: int, object: pd.DataFrame) -> None:
     out= p / f'{step}-{hex(time.time_ns())}.pkl'
     with open(out, 'wb') as f:
         pickle.dump(object,f)
+    
+    return out
 
 
 def _write_summary_bin_log(name: str, summary_dict: Dict):
