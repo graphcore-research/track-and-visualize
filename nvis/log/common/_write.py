@@ -22,7 +22,8 @@ def lf_to_pickle(name: str, step: int, object: pd.DataFrame) -> Path:
     return out
 
 
-def _write_summary_bin_log(name: str, summary_dict: Dict):
+
+def write_summary_bin_log(name: str, summary_dict: Dict) -> None:
     # May replace this with a shared memory buffer, if I can think of a good way to set the size effectly
     p = Path(f"./{_libname}/{name}/")
     p.mkdir(parents=True, exist_ok=True)

@@ -15,7 +15,8 @@ from seaborn.axisgrid import Grid
 from seaborn._base import categorical_order
 from seaborn._core.data import handle_data_source
 from seaborn import utils
-from seaborn.relational import scatterplot, lineplot, _ScatterPlotter,_LinePlotter
+from seaborn.relational import scatterplot, lineplot
+from seaborn.relational import _ScatterPlotter, _LinePlotter # type: ignore
 
 
 @contextmanager
@@ -61,7 +62,7 @@ class FacetGrid(Grid):
         else:
             hue_names = categorical_order(data[hue], hue_order)
 
-        colors = self._get_palette(data, hue, hue_order, palette)
+        colors = self._get_palette(data, hue, hue_order, palette) # type: ignore
 
         # Set up the lists of names for the row and column facet variables
         if row is None:
@@ -135,7 +136,7 @@ class FacetGrid(Grid):
                           sharex=sharex, sharey=sharey,
                           subplot_kw=subplot_kws,
                           gridspec_kw=gridspec_kws)
-            axes = fig.subplots(nrow, ncol, **kwargs)
+            axes = fig.subplots(nrow, ncol, **kwargs) #type: ignore
 
             if col is None and row is None:
                 axes_dict = {}
@@ -418,6 +419,7 @@ class FacetGrid(Grid):
 
             # Insert a label in the keyword arguments for the legend
             if self._hue_var is not None:
+                assert self.hue_names != None, 'hue_names property cannot be None'
                 kwargs["label"] = utils.to_utf8(self.hue_names[hue_k])
 
             # Get the actual data we are going to plot with
@@ -490,6 +492,7 @@ class FacetGrid(Grid):
 
             # Insert a label in the keyword arguments for the legend
             if self._hue_var is not None:
+                assert self.hue_names != None, 'hue_names property cannot be None'
                 kwargs["label"] = self.hue_names[hue_k]
 
             # Stick the facet dataframe into the kwargs
@@ -529,7 +532,7 @@ class FacetGrid(Grid):
         func(*plot_args, **plot_kwargs)
 
         # Sort out the supporting information
-        self._update_legend_data(ax)
+        self._update_legend_data(ax) #type:ignore
 
     def _finalize_grid(self, axlabels):
         """Finalize the annotations and layout."""
@@ -547,7 +550,7 @@ class FacetGrid(Grid):
 
         # Get a reference to the axes object we want, and make it active
         if modify_state:
-            plt.sca(ax)
+            plt.sca(ax) #type: ignore
         return ax
 
     def despine(self, **kwargs):
@@ -859,7 +862,7 @@ def relplot(
     palette=None, hue_order=None, hue_norm=None,
     sizes=None, size_order=None, size_norm=None,
     markers=None, dashes=None, style_order=None,
-    legend="auto", kind="scatter", height=5, aspect=1, facet_kws=None, figure: matplotlib.figure.Figure = None,
+    legend="auto", kind="scatter", height=5, aspect=1, facet_kws=None, figure: Union[matplotlib.figure.Figure,None] = None,
     **kwargs
 ):
 
@@ -1009,10 +1012,10 @@ def relplot(
         # the legend out here and will have parity with the axes-level functions.
         keys = ["c", "color", "alpha", "m", "marker"]
         if kind == "scatter":
-            legend_artist = utils._scatter_legend_artist
+            legend_artist = utils._scatter_legend_artist #type: ignore
             keys += ["s", "facecolor", "fc", "edgecolor", "ec", "linewidth", "lw"]
         else:
-            legend_artist = partial(mpl.lines.Line2D, xdata=[], ydata=[])
+            legend_artist = partial(mpl.lines.Line2D, xdata=[], ydata=[]) #type: ignore
             keys += [
                 "markersize", "ms",
                 "markeredgewidth", "mew",

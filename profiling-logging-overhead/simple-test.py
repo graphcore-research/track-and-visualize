@@ -9,7 +9,7 @@ module_path = os.path.abspath(os.path.join('../'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from nvis.log.torch.stash_functions import stash_scalar_stats
+from nvis.log.torch.stash_values import stash_scalar_stats
 from nvis.log.torch import track, stash_all_stats_and_hist
 from nvis.log import read_pickle
 import torch

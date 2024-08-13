@@ -1,7 +1,7 @@
 from pathlib import Path
 import shutil
 
-from nvis.log.torch.stash_functions import stash_scalar_stats
+from nvis.log.torch.stash_values import stash_scalar_stats
 from ..log.torch import track, stash_all_stats_and_hist
 from ..log import read_pickle
 import torch

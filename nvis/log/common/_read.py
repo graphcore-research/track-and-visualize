@@ -161,10 +161,10 @@ def read_parquet(
     # read DF as per usal 
     df  = _pd.read_parquet(
         path,
-        engine,
+        engine, #type: ignore
         columns,
         storage_options,
-        use_nullable_dtypes=use_nullable_dtypes,
+        use_nullable_dtypes=use_nullable_dtypes, #type: ignore
         dtype_backend=dtype_backend,
         filesystem=filesystem,
         filters=filters,
@@ -209,8 +209,8 @@ def read_csv(
 
     # if a schema_map is provided migrate DF to LF schema
     if schema_map:
-        df = _dataframe_migration(df, schema_map)
+        df = _dataframe_migration(df, schema_map) #type: ignore
     
     # Validate and return
-    return _validate_schema(df)
+    return _validate_schema(df) #type: ignore
 

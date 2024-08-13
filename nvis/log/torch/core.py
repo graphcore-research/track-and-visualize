@@ -23,7 +23,7 @@ from torch import Tensor, nn
 
 from ..common._tracker import BaseTracker
 from ..common._write import lf_to_pickle
-from .stash_functions import stash_all_stats_and_hist
+from .stash_values import stash_all_stats_and_hist
 from ..common._types import Stash, Event, StashFn
 
 

@@ -24,9 +24,6 @@ def _validate_df_hash(df: pd.DataFrame):
     if not df.attrs['vis-meta']['hash'] == _get_df_schema_hash(df):
         raise SchemaException('The configuration of the DataFrame structure has changed since the file was loaded, please re-validate the DF before passing it into the vis function')
 
-
-
-
 def _validate_schema(df: pd.DataFrame, SCHEMA = _types.LogFrame, debug=False):
     
 

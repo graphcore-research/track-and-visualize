@@ -13,7 +13,7 @@ import wandb
 from ._log_handler import combine_incremental_dfs, global_stash_to_logframe, nuke_intermediate_logframes,summarise_logframe
 from ..._config import _libname
 from ._types import StashFn,Stash
-from ._write import lf_to_pickle,_write_summary_bin_log
+from ._write import lf_to_pickle,write_summary_bin_log
 
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union, ByteString, Tuple
 import randomname
@@ -40,7 +40,7 @@ def async_wrapper(f: Callable,name: str, step: int, object: ByteString):
 
     # only if wandb is being used..
     summary_dict = summarise_logframe(df)
-    _write_summary_bin_log(name=name, summary_dict=summary_dict)
+    write_summary_bin_log(name=name, summary_dict=summary_dict)
 
 
 

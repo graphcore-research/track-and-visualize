@@ -3,7 +3,6 @@
 from ast import Name
 from typing import Literal, Tuple
 
-from git import Union
 
 
 def _exp(c: int | float) -> Tuple[str, int | float]:
