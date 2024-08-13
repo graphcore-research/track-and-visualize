@@ -10,6 +10,8 @@ from ._log_handler import combine_incremental_dfs
 
 def download_wandb_artifact(artifact_fullname: str, pd_read_fn: Callable = pd.read_pickle) -> pd.DataFrame:
     """
+        This fn, simply downloads the set of files in a artifact locally, reads them to pd.DataFrame's and concatenates them to
+        a single DataFrame.
         Args:
             artifact_fullname (str) : The fullname of the artefact account belongs to.
 
