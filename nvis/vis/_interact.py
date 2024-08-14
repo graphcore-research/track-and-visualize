@@ -1,33 +1,38 @@
+from dataclasses import asdict
 from enum import Enum
 import itertools
 import sys
 from ipywidgets import widgets
 from typing import Dict, Callable, List, Union
+import matplotlib.axes
 import matplotlib.figure
 import pandas as pd
 from requests import get
+from torch import NoneType
 import traitlets
 import matplotlib
 from functools import partial
 
-from nvis.log.common._types import ExponentHistogram
 
 from ..log.common import TensorType
+from ..log.common._types import TrainingStats
 from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
 from._toolbars import get_toolbar, _ExponentHistogramToolbar, _ScalarLineToolbar
+from ._widget_holder import WidgetHolder
+from ._crosshair import SnappingCrossHair
 
 from IPython import display
 import matplotlib.pyplot as plt 
-
 import warnings
+
+import numpy as np
+
 
 
 class NotebookType(str,Enum):
     colab = 'colab'
     vscode = 'vscode'
     any = 'any'
-
-
 
 
 def what_nb_frontend():
@@ -42,116 +47,19 @@ def what_nb_frontend():
     return NB
 
 
-
-class WidgetHolder:
-        
-        def __init__(self, parent : widgets.Output, **kwargs) -> None:
-            self.parent = parent
-            self.widgets: Dict[str,widgets.Widget] = {
-                **kwargs
-            }
-            self.hbox_layout = widgets.Layout(flex_flow='row',display='flex',**{'width': '100%','justify-content': 'space-around'})
-            self.container = widgets.HBox(
-                children=list(self.widgets.values()),
-                layout=self.hbox_layout
-            )
-
-        def _redraw(self):
-            redraw = True
-        # overwrite redraw_fn args
-            for k,v in self.widgets.items():
-                if (type(v.value) == list or type(v.value) == tuple) and len(v.value) <= 1: # type: ignore
-                    # fixing bug doug identified
-                    if len(v.value) == 0: # type: ignore
-                        redraw = False
-                    else:
-                        self.redraw_fn_args[k] = v.value[0] # type: ignore
-                else:
-                    # handling select multiple
-                    if type(v.value) == tuple: # type: ignore
-                        self.redraw_fn_args[k] = list(v.value) # type: ignore
-                    else:
-                        self.redraw_fn_args[k] = v.value # type: ignore
-            if redraw:
-                self.redraw_fn(**self.redraw_fn_args)
-
-            
-        def _f(self,*args,**kwargs):
-            # so it only updates on the final point (for dropdown)
-            if args[0]['name'] == '_property_lock' and type(args[0]['old']) != traitlets.utils.sentinel.Sentinel: # type: ignore
-
-                if isinstance(args[0]['owner'],widgets.widget_selection.Dropdown):
-                    if 'index' in args[0]['old'].keys():
-                        self._redraw()
-                    ...
-                if isinstance(args[0]['owner'], widgets.widget_tagsinput.TagsInput):
-                    self._redraw()
-                
-                if isinstance(args[0]['owner'],widgets.widget_selection.SelectMultiple):
-                    self._redraw()
+NoneType = type(None)
 
 
-            else:
-                
-                ...
-                
-
-        def observe(self):
-            for k,v in self.widgets.items():
-                v.observe(self._f)
-
-        def __getitem__(self,key) -> widgets.Widget:
-            return self.widgets[key]
-        
-        def __setitem__(self,key: str, value: widgets.Widget) -> None:
-            # add widget to key
-            self.widgets[key] = value
-            # observe widget
-            self.widgets[key].observe(self._f)
-
-        def __delitem__(self,key: str) -> None:
-            # self.widgets[key].unobserve()
-            self.widgets[key].close()
-            self.widgets.__delitem__(key)
-
-
-        def set_current_redraw_function(self, f: Callable, fig: matplotlib.figure.Figure, **kwargs) -> None:
-            self.redraw_fn = partial(f,fig=fig)
-            self.redraw_fn_args = kwargs
-
-        def display(self) -> None:
-            self.parent.append_display_data(self.container)
-            self.parent.outputs = self.parent.outputs[-1:]
-
-        def nuke(self) -> None:
-            """Kill all widgets in WH"""
-            for k,v in self.widgets.items():
-                v.close()
-            self.widgets = {}
-            self.container.close()
-            del self.container
-
-            # Also needs to kill Hboxes...
-
-        def rebuild(self,**kwargs) -> None:
-            self.widgets: Dict[str,widgets.Widget] = {
-                **kwargs
-            }
-            self.container = widgets.HBox(
-                children=list(self.widgets.values()),
-                layout=self.hbox_layout
-            )
-            self.observe()
-            self.display()
-
-
-        def state(self) -> Dict:
-            return {k:v.value for k,v in self.widgets.items()} # type: ignore
-        
 
 
 def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str, tt: TensorType, step: int, **kwargs):
+    """
+        Essesntially the same as z `nvis.vis.exp_hist` except it doesn't generate a new figure, which is the required behaviour for interactive plots.
 
+        Could save some redundant code here by refactoring `nvis.vis.exp_hist` into a public and private fn, and reuse the private fn here? \
+        But likely wouldn't save a huge amount.
+
+    """
     # clear all axes from the figure
     fig.clear()
     
@@ -195,6 +103,9 @@ def _exp_hist_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str
 
 
 def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scalar_metric: str, tt: TensorType, inc: int,  **kwargs):
+    """
+        Essesntially the same as z `nvis.vis.global_scalar_heatmap` except it doesn't generate a new figure, which is the required behaviour for interactive plots.
+    """
 
     # clear figure
     fig.clear()
@@ -223,10 +134,12 @@ def _global_scalar_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, scala
 
 
 def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: str, tt: TensorType, scalar_metric: Union[str, List[str]], **kwargs):
+    """
+        Essesntially the same as z `nvis.vis.scalar_line` except it doesn't generate a new figure, which is the required behaviour for interactive plots.
+    """
     # clear figure
     fig.clear()
-
-
+    ch_callback = kwargs.pop('ch_callback',None)
     plotter = _ScalarLinePlotter(kind=kwargs.pop('kind',_ScalarLineToolbar.kind[0]),
                                 x = kwargs.pop('x', ('metadata', 'step')),
                                 scalar_metric=scalar_metric,
@@ -236,8 +149,7 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
     
     _df = plotter._query(df=df,
                          layer=layer,
-                         tt=tt
-                         )
+                         tt=tt)
     
     if not _df.empty:
 
@@ -247,7 +159,6 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
                 df=_df,
                 figure=fig
                 )
-
                 
         else:
             # create new axes
@@ -258,21 +169,28 @@ def _scalar_line_redraw(fig: matplotlib.figure.Figure, df: pd.DataFrame, layer: 
                 fig.suptitle(f'Layer: {layer}, TT: {tt}')
     else:
         warnings.warn('The input query return no results, displaying an empty figure')
-    fig.canvas.draw_idle()
+
+    if not isinstance(ch_callback, NoneType):
+        ch_callback(other_ax=fig.axes)
+    fig.canvas.draw()
 
 # TODO: Need to check that querys are in the DF, both w.r.t to dtype annotations (i.e. logged dtype is out of range of logged hists)
 # TODO: Need to ensure check that the tensors stats exists (i.e. step 0 optimiser state)
 
 
-def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
+def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,  width: int =1500, mouse_sensitivity: int = 10000 ,**kwargs) -> None:
     """
         This function makes the visualisation interactive in a jupyter notebook.
 
         
         Args:
         f (Callable) : The plotting function you wish to make interactive
+        train_stats (Dict | TrainingStats | None ) = None: If you wish to cross reference your training statistics with the numerics stats \
+        pass it in and the interactive plot will display a line plot with the training stats to the left of the numerics visualisation.
         width (float) : The value in pixels for how wide you wish the visualisation to be.
-        kwargs: The arguments for provided vis function f 
+        mouse_sensitivity (int) : Only required if train_stats is passed in. If you find the cross hairs lagging increase the value, it reduces the \
+        frequency with which redraws triggered and therefore reducing lag at the expense of transition smoothness.
+        kwargs: The arguments for provided vis function `f` 
 
         Returns:
         None
@@ -285,28 +203,92 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
     assert isinstance(f,Callable), f'{f} is not Callable'
     # Accessible with-in the function scope
     WH : Union[WidgetHolder,None] = None
-    stack_num = 0
+    CROSSHAIR : Union[SnappingCrossHair,None] = None
+    ch_mne_id: Union[int,None] = None
+    ch_bpe_id: Union[int,None] = None
+    STACK_NUM = 0
     APP = widgets.Output(layout={'width': f'{width}px','justify-content': 'space-around', 'overflow': 'scroll hidden'})
     TOOLBAR = widgets.Output(layout={'width': '100%','justify-content': 'space-around'})
+
+
+    # DF for accessing in closures (for event handling, etc..)
+    DF = kwargs['df'] # not optional ever
+    # initial state of plot (These are set here, so if you need them the plot can be returned to the init state)
+    TT = kwargs.get('tt',None)
+    INC = kwargs.get('inc',None)
+    SCALAR_METRIC = kwargs.get('scalar_metric',None)
+    LAYER = kwargs.get('layer',None)
+    STEP = kwargs.get('step', None)
+
+    def tstats_onpress(event: matplotlib.backend_bases.MouseEvent, step: Callable, button_press: bool) -> None: #type: ignore
+        """
+            This is the event handling function for button press events on the training steps figure.
+
+            Currently just calls step, and passes the result in as the arguement for the _redraw method in the `WidgetHolder` object, \
+            which overides the value in the widget with that value.
+
+            Args:
+                event (matplotlib.backend_bases.MouseEvent): The matplotlib mouse press event
+                step (Callable): The getter for the step property of the SnappingCrossHair object (i.e. what training step is the cross hair at),\
+                for use in querying the numerics logs.
+                button_press (bool): Not all visualisations (i.e. scalar_line) need to support querying numerics data from the training stats \
+                this is simply a flag to make the event a no-op (need to listen for the event either way as it seems that if button press isn't listened for \
+                other event listeners get garbage collected)
+
+            Returns:
+                None
+        """
+        if not isinstance(WH, NoneType) and button_press:
+            WH._redraw(step=step())
+
+    def set_up_crosshair(training_ax, other_ax, lines, button_press: bool = False):
+        """
+            This closure, initialises a new SnappingCrossHair state management object (in the outer function scope) and disconnecting any old event listeners, etc.
+        
+            Args:
+                training_ax (...): The matplotlib axis for the training statistics figure (currenly only supports single axis figures)
+                other_ax (...): The (axis or axes) of the numerics figure, only used currently in scalar_line which overlays the cross hair on the numerics axes.
+                lines (...): The line(s) in the training axis, used to snap to samples and displaying the info text.
+                button_press (...): Where or not the 'button_press_event' handler is a no-op or not.
+
+            Returns:
+                None
+        """
+        # Disconnect old events, before adding new ones
+        nonlocal ch_mne_id,ch_bpe_id,CROSSHAIR
+        if ch_mne_id:
+            training_fig.canvas.mpl_disconnect(ch_mne_id)
+        if ch_bpe_id:
+            training_fig.canvas.mpl_disconnect(ch_bpe_id)
+        CROSSHAIR = SnappingCrossHair(training_ax, other_ax, lines, sensitivity=mouse_sensitivity)
+        
+        ch_bpe_id = training_fig.canvas.mpl_connect('button_press_event', partial(tstats_onpress,step=CROSSHAIR.get_step_in_crosshairs, button_press=button_press))
+        ch_mne_id = training_fig.canvas.mpl_connect('motion_notify_event', CROSSHAIR.on_mouse_move)
+        
+        training_fig.canvas.draw()
     
     ###########################################################################################################################
     # Event Handler(s) for ScalarGlobalHeatmap
     ###########################################################################################################################
     # Onclick 
     def sgh_onclick(event: matplotlib.backend_bases.MouseEvent): # type: ignore
+        """
+            The event handler for the scalar global heatmap 'button_press_event'. Facilitates the interaction of clicking on a patch on the heatmap on \
+            navigating to the exponent histogram of that plot and conversely navigating back from the exponent histogram plot back to heatmap.
+
+            Args:
+                event (matplotlib.backend_bases.MouseEvent): The matplotlib mouse press event
+
+            Returns:
+                None
+        """
         assert type(WH) == WidgetHolder, 'No Widget Holder initalised'
-        nonlocal stack_num # for tracking plot state
-        nonlocal APP
-        # initial state of plot
-        DF = kwargs['df'] # not optional ever
-        TT = kwargs.get('tt',None)
-        INC = kwargs.get('inc',None)
-        SCALAR_METRIC = kwargs.get('scalar_metric',None)
-        LAYER = kwargs.get('layer',None)
-        STEP = kwargs.get('step', None)
+        nonlocal STACK_NUM # for tracking plot state
+        # nonlocal APP
+       
         # where is the mouse w.r.t to x-tickets / y-ticks (this will form the query)
-        if event.button == 1 and stack_num == 0:
-            stack_num = 1
+        if event.button == 1 and STACK_NUM == 0:
+            STACK_NUM = 1
             tf, ind =  event.canvas.figure.axes[0].collections[0].contains(event)
             if tf:
                 
@@ -336,8 +318,8 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
                     **get_toolbar(kind=_ExponentHistogramToolbar.kind)
                 )
                 
-        elif event.button == 3 and stack_num > 0 :
-            stack_num = 0
+        elif event.button == 3 and STACK_NUM > 0 :
+            STACK_NUM = 0
             # Redraw Figure
             drf = _global_scalar_redraw
             drargs = dict(fig=event.canvas.figure,
@@ -371,23 +353,60 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
     def sl_onclick(event: matplotlib.backend_bases.MouseEvent): # type: ignore
         ...
 
+    # Generate Training Stats Figure (Not implemented for Scalar Global Heatmap as of yet)
+    if not isinstance(train_stats,NoneType):
+        # need to have something for handling dictionaries
+        tstats_dict: Dict = asdict(train_stats, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}) # type: ignore
+        tsteps = tstats_dict.pop('steps', None)
+        assert tsteps != None, 'Steps must be provided to use Training stats visualisation'
+        tdf = kwargs.get('df',None)
+        assert not isinstance(tdf,NoneType), 'Must provide a DataFrame'
+        assert set(tsteps)==(set(tdf.metadata.step.unique())), 'The number of steps in train_stats does not match the numerics logging'
+        lines = dict()
+        with plt.ioff():
+            training_fig, training_ax = plt.subplots()
+            for k,v in tstats_dict.items():
+                lines[k], = training_ax.plot(tsteps,v, picker=True, pickradius=5)
+        
+        training_fig.canvas.toolbar_visible = False # type: ignore
+        training_fig.canvas.figure_title = False # type: ignore
+        training_fig.canvas.header_visible = False # type: ignore
+        training_fig.canvas.footer_visible = False # type: ignore
+        training_fig.canvas.resizable = False # type: ignore
+        
+
+
     
     # Create figure
     with plt.ioff():
-        fig = f(**kwargs)
+        fig: matplotlib.figure.Figure = f(**kwargs)
     
     # General Plot Formating
-    fig.canvas.toolbar_visible = False
-    fig.canvas.figure_title = False
-    fig.canvas.header_visible = False
-    fig.canvas.footer_visible = False
-    fig.canvas.resizable = False
+    fig.canvas.toolbar_visible = False # type: ignore
+    fig.canvas.figure_title = False # type: ignore
+    fig.canvas.header_visible = False # type: ignore
+    fig.canvas.footer_visible = False # type: ignore
+    fig.canvas.resizable = False # type: ignore
 
+    N2TRAINRATION = 4
 
-    # Canvas output & Figure set to same size
-    fig.figure.set_figwidth(width/fig.dpi)
+    # adjust here if using training_stats
+    if not isinstance(train_stats,NoneType):
+        # Canvas output & Figure set to same size
+        fig_width = ((width / (N2TRAINRATION + 1)) * N2TRAINRATION).__ceil__()
+        tfig_width = width - fig_width
+        fig.figure.set_figwidth(fig_width/fig.dpi)
+        training_fig.figure.set_figwidth(tfig_width/training_fig.dpi)
+        training_fig.figure.set_figheight(fig.figure.get_figheight())
+
+    else:
+        # Canvas output & Figure set to same size
+        fig.figure.set_figwidth(width/fig.dpi)
     
-    # Initial State of the interactive visualisation..
+    
+    
+    # Set Initial State of the interactive visualisation..
+    ###### SCALAR GLOBAL HEATMAP ######
     if f.__name__ == 'scalar_global_heatmap':
         cid = fig.figure.canvas.mpl_connect('button_press_event', sgh_onclick)
 
@@ -398,13 +417,11 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
                               scalar_metric = kwargs['scalar_metric'],
                               tt = kwargs['tt']
                           )
-                        #   scalar_metric=widgets.Dropdown(options=kwargs['df'].scalar_stats.columns.tolist() , value=kwargs['scalar_metric']),
-                        #   tt=widgets.Dropdown(options=kwargs['df'].metadata.tensor_type.unique().tolist(), value=kwargs['tt'])
                           )
         WH.observe()
         WH.set_current_redraw_function(_global_scalar_redraw, fig=fig.figure, **kwargs)
         WH.display()
-    
+    ###### EXPONENT HISTOGRAM ######
     elif f.__name__ == 'exp_hist':
         cid = fig.figure.canvas.mpl_connect('button_press_event', eh_onclick)
 
@@ -418,12 +435,19 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
                               layer=kwargs['layer']
                               )
                           )
-    
         WH.observe()
-        WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure, **kwargs)
+        # For using cross hairs with training stats
+        if not isinstance(train_stats,NoneType):
+            set_up_crosshair(training_ax, None, lines, button_press=True)
+            WH.set_current_redraw_function(
+                _exp_hist_redraw,
+                fig=fig.figure,  
+                **kwargs)
+        else:
+            WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure, **kwargs)
         WH.display()
 
-        # raise NotImplementedError(f'{f.__name__} is not currently supported')
+    ###### SCALAR GLOBAL LINE ######
     elif f.__name__ == 'scalar_line':
         cid = fig.figure.canvas.mpl_connect('button_press_event', sl_onclick)
 
@@ -435,10 +459,17 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
                               scalar_metric = kwargs['scalar_metric'],
                               layer = kwargs['layer'])
                           )
-
-
+        
         WH.observe()
-        WH.set_current_redraw_function(_scalar_line_redraw, fig=fig.figure, **kwargs)
+        # For using cross hairs with training stats
+        if not isinstance(train_stats,NoneType):
+            set_up_crosshair(training_ax, fig.axes, lines)
+            WH.set_current_redraw_function(
+                _scalar_line_redraw,fig=fig.figure, 
+                ch_callback=partial(set_up_crosshair,training_ax=training_ax,lines=lines), 
+                **kwargs)
+        else:
+            WH.set_current_redraw_function(_scalar_line_redraw, fig=fig.figure, **kwargs)
         WH.display()
 
     else:
@@ -446,11 +477,12 @@ def interactive(f: Callable,width: int =1500 ,**kwargs) -> None:
         
         
     # Add to master output...
-    # APP.append_display_data(TOOLBAR)
-    # APP.append_display_data(TOOLBAR)
-    APP.append_display_data(fig.canvas)
+    if not isinstance(train_stats,NoneType):
+        APP.append_display_data(widgets.HBox(children=[training_fig.canvas,fig.canvas]))
+    else:
+        APP.append_display_data(fig.canvas)
     display.display(TOOLBAR,APP)
 
     if what_nb_frontend() == NotebookType.colab:
         plt.show()
-        fig.canvas.resizable = False
+        fig.canvas.resizable = False # type: ignore

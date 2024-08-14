@@ -3,6 +3,7 @@ import pandas as _pd
 from typing import Callable, Literal, Optional, Dict, Any, Tuple, Type, Union, TypeVar
 from dataclasses import dataclass
 import inspect
+from typing import List,Optional
 # from pandas._typing import 
 # from abc import ABC
 
@@ -159,6 +160,13 @@ class Stash:
     
 StashFn = Callable[[Event], Stash]
 
+
+
+@dataclass
+class TrainingStats:
+    steps: List[int]
+    train_loss: List[float]
+    val_loss: Optional[List[float]] = None
 
 @dataclass
 class ExponentHistogram:
