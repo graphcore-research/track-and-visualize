@@ -202,6 +202,9 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
 
     assert isinstance(f,Callable), f'{f} is not Callable'
     # Accessible with-in the function scope
+    TSTATS_ENABLED = f.__name__ in ['exp_hist','scalar_line']
+    if not isinstance(train_stats, NoneType) and not TSTATS_ENABLED:
+        warnings.warn(f'Cross Referencing with Training Stats is not implemented for {f.__name__} and therefore providng train_stats will do nothing.')
     WH : Union[WidgetHolder,None] = None
     CROSSHAIR : Union[SnappingCrossHair,None] = None
     ch_mne_id: Union[int,None] = None
@@ -354,7 +357,7 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
         ...
 
     # Generate Training Stats Figure (Not implemented for Scalar Global Heatmap as of yet)
-    if not isinstance(train_stats,NoneType):
+    if not isinstance(train_stats,NoneType) and TSTATS_ENABLED:
         # need to have something for handling dictionaries
         tstats_dict: Dict = asdict(train_stats, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}) # type: ignore
         tsteps = tstats_dict.pop('steps', None)
@@ -391,7 +394,7 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
     N2TRAINRATION = 4
 
     # adjust here if using training_stats
-    if not isinstance(train_stats,NoneType):
+    if not isinstance(train_stats,NoneType) and TSTATS_ENABLED:
         # Canvas output & Figure set to same size
         fig_width = ((width / (N2TRAINRATION + 1)) * N2TRAINRATION).__ceil__()
         tfig_width = width - fig_width
@@ -437,7 +440,7 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
                           )
         WH.observe()
         # For using cross hairs with training stats
-        if not isinstance(train_stats,NoneType):
+        if not isinstance(train_stats,NoneType) and TSTATS_ENABLED:
             set_up_crosshair(training_ax, None, lines, button_press=True)
             WH.set_current_redraw_function(
                 _exp_hist_redraw,
@@ -462,7 +465,7 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
         
         WH.observe()
         # For using cross hairs with training stats
-        if not isinstance(train_stats,NoneType):
+        if not isinstance(train_stats,NoneType) and TSTATS_ENABLED:
             set_up_crosshair(training_ax, fig.axes, lines)
             WH.set_current_redraw_function(
                 _scalar_line_redraw,fig=fig.figure, 
@@ -477,7 +480,7 @@ def interactive(f: Callable, train_stats: Union[Dict,TrainingStats,None] = None,
         
         
     # Add to master output...
-    if not isinstance(train_stats,NoneType):
+    if not isinstance(train_stats,NoneType) and TSTATS_ENABLED:
         APP.append_display_data(widgets.HBox(children=[training_fig.canvas,fig.canvas]))
     else:
         APP.append_display_data(fig.canvas)
