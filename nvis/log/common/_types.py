@@ -126,7 +126,7 @@ class LogFrame:
 
 
 # Logging Types
-TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
+TT = Literal['Activation', 'Gradient', 'Weights', r'Optimiser_State\.[a-zA-Z_\-]+','Weight_Gradients']
 
 import torch
 from torch import nn

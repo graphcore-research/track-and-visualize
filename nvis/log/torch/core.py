@@ -26,10 +26,6 @@ from ..common._write import lf_to_pickle
 from .stash_values import stash_all_stats_and_hist
 from ..common._types import Stash, Event, StashFn
 
-
-TT = Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State']
-
-
 StashValueFn = Callable[[torch.Tensor], Any]
 
 def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
@@ -83,6 +79,7 @@ class TorchTracker(BaseTracker):
         self._handles: List[torch.utils.hooks.RemovableHandle] = [] # torch specific
         self._model: Union[torch.nn.Module,None] = None # torch specific
         self.only_stash_during_training = only_stash_during_training
+        self.track_gradients: bool = False # torch specific
 
     def __exit__(
         self,
@@ -124,6 +121,7 @@ class TorchTracker(BaseTracker):
     ) -> None:
         include = re.compile(include) if isinstance(include, str) else include
         exclude = re.compile(exclude) if isinstance(exclude, str) else exclude
+        self.track_gradients = grad
         for name, child in module.named_modules():
             if ((not include) or include.search(name)) and not (
                 exclude and exclude.search(name)
@@ -184,21 +182,28 @@ class TorchTracker(BaseTracker):
                     self.stashes.append(self._stash(Event(pn.removesuffix('.weight'),None,f'Optimiser_State.{k}',v,(),{}))) #type: ignore
                     
 
-    def _model_weights_hook(self):
+    def _stash_model_weights(self):
 
         if self.only_stash_during_training:
             if self._model and self._model.training:
                 for name,params in self._model.named_parameters():
                     self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
+                    if self.track_gradients and params.grad != None:
+                        self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weight_Gradients',params.grad,(),{})))
+                            
         else:
             if self._model:
                 for name,params in self._model.named_parameters():
                     self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weights',params.data,(),{})))
+                    if self.track_gradients and params.grad != None:
+                        # If grads aren't zeroed before the evaluation loop, this could store several duplicates of the weight grad
+                        # perhaps should check train flag?
+                        self.stashes.append(self._stash(Event(name.removesuffix('.weight'),None,'Weight_Gradients',params.grad,(),{})))
 
 
     def step(self):
         if self._model:
-            self._model_weights_hook()
+            self._stash_model_weights()
         
         self._internal_step()
 
