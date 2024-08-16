@@ -16,11 +16,11 @@ def download_wandb_artifact(artifact_fullname: str, pd_read_fn: Callable = pd.re
             artifact_fullname (str) : The fullname of the artefact account belongs to.
 
             Can be copied from a URL that matches this:
-            `https://wandb.ai/<entity>/<project-name>/artifacts/nvis-logframe/<artifact-alias>/<artifact-version>/overview`
+            `https://wandb.ai/<entity>/<project-name>/artifact_files/nvis-logframe/<artifact-alias>/<artifact-version>/overview`
             
 
         Returns:
-            str (path to root directory where artifacts have been downloaded)
+            str (path to root directory where artifact_files have been downloaded)
     
     """
 
@@ -29,16 +29,16 @@ def download_wandb_artifact(artifact_fullname: str, pd_read_fn: Callable = pd.re
 
     outdir = artifact.download()
     p = Path(outdir) #type: ignore
-    artifacts: List[str] = os.listdir(outdir)
+    artifact_files: List[str] = os.listdir(outdir)
 
 
-    if len(artifacts) > 1:
-        artifacts.sort(key=lambda x: int(x.split('-')[0]))
+    if len(artifact_files) > 1:
+        artifact_files.sort(key=lambda x: int(x.split('-')[0]))
         # sort by step (might be brittle doing this!)
         # read_pickle should maybe be an argument?
-        all_lfs = [pd_read_fn(p/file) for file in artifacts]
+        all_lfs = [pd_read_fn(p/file) for file in artifact_files]
 
         return pd.concat(all_lfs,ignore_index=True)
 
     else:
-        return pd_read_fn(p/artifacts[0])
+        return pd_read_fn(p/artifact_files[0])

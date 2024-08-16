@@ -12,7 +12,7 @@ import wandb
 # rel imports
 from ._log_handler import combine_incremental_dfs, global_stash_to_logframe, nuke_intermediate_logframes,summarise_logframe
 from ..._config import _libname
-from ._types import StashFn,Stash
+from ._types import StashFn,Stash,Event
 from ._write import lf_to_pickle,write_summary_bin_log
 
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union, ByteString, Tuple
@@ -117,7 +117,6 @@ class BaseTracker:
         self.out_path = output_path
         print(f'The output LogFrame is available at: {output_path}')
         nuke_intermediate_logframes(self._name)
-
         
 
     def __str__(self) -> str:
@@ -131,6 +130,11 @@ class BaseTracker:
 
     def __len__(self) -> int:
         return len(self.stashes)
+    
+    def stash_event(self, event: Event):
+        self.stashes.append(
+                self._stash(event)
+        )
     
     def evict_global_stash(self):
         self._global_stash.clear()
