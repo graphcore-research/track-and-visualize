@@ -305,7 +305,7 @@ def scalar_global_heatmap(
         inc: int = 1,
         x=_q.IT,
         y=_q.NAME,
-        figsize: Tuple[float,float] = (10,10),
+        figsize: Tuple[float,float] = (8,6),
         col_wrap: Union[int,None] = None,
         **kwargs):
     """
@@ -665,7 +665,7 @@ def exp_hist(
         dtype_annotation: Union[bool, str, List[str]]= True,
         dtype_info: Tuple[bool,bool,bool] = (True,True,True), # Will figure out a way to make this slightly nicer!
         col_wrap: Union[int,None] = None,
-        figsize: Tuple[int,int] = (10,10),
+        figsize: Tuple[int,int] = (8,6),
         xtick_labelsize: int = 12,
         xtick_rotation: int = 45, # can I make these kwargs will defaults??
         fig_title: Union[str,None] = None,

@@ -80,6 +80,18 @@ def get_toolbar(**kwargs) -> Dict[str,widgets.Widget]:
 
         else:
             raise Exception('Invalid Arguments provided to generate widget for scalar_metric')
+        
+    # step
+    if 'step' in kwargs.keys():
+        step: Union[int, None] = kwargs.get('step')
+        assert type(step) == int, f"step must be an int not {type(step)}"
+        df: Union[pd.DataFrame,None] = kwargs.get('df')
+        assert type(df) == pd.DataFrame, f'df must be of type pd.DataFrame not: {type(df)}'
+
+        toolbar_components['step'] = widgets.Dropdown(
+            options=df.metadata.step.unique().tolist(),
+            value=step
+        )
     
     # layer
     if 'layer' in kwargs.keys():
@@ -105,18 +117,5 @@ def get_toolbar(**kwargs) -> Dict[str,widgets.Widget]:
                 value = value
             )
     
-    # step
-    if 'step' in kwargs.keys():
-        step: Union[int, None] = kwargs.get('step')
-        assert type(step) == int, f"step must be an int not {type(step)}"
-        df: Union[pd.DataFrame,None] = kwargs.get('df')
-        assert type(df) == pd.DataFrame, f'df must be of type pd.DataFrame not: {type(df)}'
-
-        toolbar_components['step'] = widgets.Dropdown(
-            options=df.metadata.step.unique().tolist(),
-            value=step
-        )
-
-
-
+    
     return toolbar_components
