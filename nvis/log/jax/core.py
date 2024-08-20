@@ -5,6 +5,7 @@ from ..common._write import lf_to_pickle
 import jax
 import jax.numpy as jnp
 import numpy as np
+from ._utils import forward_callback,backward_callback
 
 
 
@@ -27,11 +28,36 @@ class JaxTracker(BaseTracker):
             offload_fn=offload_fn,
             use_wandb=use_wandb)
         ...
-        
-    # capture and store intermediate values, fwd/bwd pass
 
-    # def stash_opt_state():
-    #     ...
+
+    def data_interceptor(self,next_fun, args, kwargs, context):
+        """
+            Captures the output of each linen module.
+        
+        """
+
+        # self.stash_event()
+
+        assert len(args) == 1
+        
+        output = next_fun(*args, **kwargs)
+
+        path = "/".join(context.module.path)
+        forward_callback(lambda v: print(f"Tensor fwd '{path}': {v}"), *output)
+        output = backward_callback(lambda v: print(f"Tensor bwd '{path}': {v}"), output)
+        
+        assert len(output) == 1
+        # backward callback returns a tuple of len 1, where as the module is expecting what's in that tuple (index it outß)
+        return output[0]
+        
+    def step(self, model_state, optimizer_state) -> None:
+
+        # capture model_state
+
+        # capture opt_state
+
+        self._internal_step()
+        ...
 
 def default_stash(event: Event) -> Stash:
 
@@ -44,6 +70,7 @@ def default_stash(event: Event) -> Stash:
         dtype=jnp.float16,
         value = ()
     )
+
 
 def track(
         module: Any,
@@ -65,7 +92,14 @@ def track(
     
     offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
     
-    tracker = JaxTracker(stash=default_stash,async_offload=async_offload,offload_inc=offload_inc,)
+    tracker = JaxTracker(
+        stash=default_stash,
+        async_offload=async_offload,
+        offload_inc=offload_inc,
+        offload_fn=offload_fn[offload_type],
+        use_wandb=use_wandb,
+        init_step=init_step
+        )
 
     # implement tracking hooks, etc..
 
