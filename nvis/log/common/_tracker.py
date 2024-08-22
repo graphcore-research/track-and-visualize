@@ -145,7 +145,8 @@ class BaseTracker:
     def move_to_global_stash(self):
         self._global_stash[self._step] = [stash.__dict__ for stash in self.stashes]
 
-    def offload_global_stash(self,final:bool = False):
+
+    def offload_global_stash(self,final: bool = False):
         # unimplemented as of yet, but where the stashes are converted to DF/Dict and offloaded to disk or sent to wandb
         # this should be configurable?
         
@@ -199,7 +200,7 @@ class BaseTracker:
             return (False,None)
         
 
-    def _internal_step(self):
+    def _internal_step(self,*args):
         # write stats to file?
         # clear stashes
         # (so should offload logs to file over wandb?)

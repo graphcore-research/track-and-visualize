@@ -8,7 +8,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Iterator,
     List,
     Optional,
     Pattern,
@@ -27,6 +26,7 @@ from .stash_values import stash_all_stats_and_hist
 from ..common._types import Stash, Event, StashFn
 
 StashValueFn = Callable[[torch.Tensor], Any]
+NamePattern = Union[None, Pattern[str], str]
 
 def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
     if isinstance(value, (tuple, list)):
@@ -62,8 +62,6 @@ def get_stash_fn(
         return stash
     return partial(default_stash, stash_value=stash_value or stash_all_stats_and_hist)
 
-
-NamePattern = Union[None, Pattern[str], str]
 
 
 
@@ -111,6 +109,8 @@ class TorchTracker(BaseTracker):
     
     def register_weights(self,model: nn.Module):
         self._model = model
+        # capture the initial model weights
+        self._stash_model_weights()
 
     def register_all(
         self,
@@ -175,6 +175,10 @@ class TorchTracker(BaseTracker):
             optimizer: torch.optim.Optimizer, #type: ignore
             *args, 
             **kwargs):
+        """
+            Stashes values for each tensor in the optimizer's `state_dict` .
+        
+        """
 
         for pn, state in zip(kwargs.get('p_names',[]),optimizer.state_dict()['state'].values()):
             for k,v in state.items():
@@ -183,6 +187,10 @@ class TorchTracker(BaseTracker):
                     
 
     def _stash_model_weights(self):
+        """
+            Stashes values for each weight parameter tensor in the model.
+        
+        """
 
         if self._model and not (not self._model.training and self.only_stash_during_training) :
             for name,params in self._model.named_parameters():
@@ -193,10 +201,19 @@ class TorchTracker(BaseTracker):
         
 
     def step(self):
+        """
+            Method to notify the tracker of the completion of a single training step/iteration.
+
+            Args
+               ...
+            Returns
+                None
+        
+        """
+        self._internal_step()
+        # post update weights (init state for step n+1)
         if self._model:
             self._stash_model_weights()
-        
-        self._internal_step()
 
             
 def track(
@@ -217,7 +234,7 @@ def track(
     """
         Function for initialising the Pytorch Tensor Tracker context manager.
 
-        By default it tracks the stastics for the what we refer to as the Activations (i.e. the outputs of the forward method in the nn module). However it can also track 
+        By default it tracks the stastics for  what we refer to as the Activations (i.e. the outputs of the forward method in the nn module). However it can also track 
         gradients, weights and optimiser state. At the end of training it will write all the logs to a LogFrame (a `pd.DataFrame` which conforms to the schema outline in our docs) 
 
 
@@ -274,15 +291,7 @@ def track(
     return tracker
 
 
-track.__doc__ = __doc__
-
 __all__ = [
-    "Event",
-    "Stash",
-    "StashFn",
-    "StashValueFn",
-    "rmap_tensor",
-    "get_stash_fn",
     "TorchTracker",
     "track",
 ]

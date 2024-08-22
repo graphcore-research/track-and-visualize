@@ -4,8 +4,9 @@ from typing import Callable, Literal, Optional, Dict, Any, Tuple, Type, Union, T
 from dataclasses import dataclass
 import inspect
 from typing import List,Optional
-# from pandas._typing import 
-# from abc import ABC
+
+import torch
+from torch import nn
 
 """
     Data Structures for logging
@@ -27,11 +28,6 @@ class WildCardTracker:
     dtype: Any
     count: int = 0
 
-class TensorType(str, Enum):
-    Activation = 'Activation'
-    Weight = 'Weight'
-    Gradient = 'Gradient'
-    OptimiserState = 'OptimiserState'
 
 @dataclass
 class SchemaMap:
@@ -52,7 +48,9 @@ class SchemaMap:
         ss = set(LogFrame.schema['metadata'].keys())
         assert sp.issubset(ss), f'The keys: {",".join(list(sp.difference()))} , are not in the allowed set: {",".join(list(ss))}'
 
-        
+
+# Logging Types
+TT = Literal['Activation', 'Gradient', 'Weights', r'Optimiser_State\.[a-zA-Z_\-]+','Weight_Gradients']        
 
 class LogFrame:
     # Need to attach additional metadata that is per iteration (i.e. train/val 
@@ -91,7 +89,7 @@ class LogFrame:
         _toplevels[0] : {
             'name': str,
             'type' : str,
-            'tensor_type' : Union[str,TensorType],
+            'tensor_type' : Union[str,TT],
             'step': int,
             'dtype': str,
             # 'dim' : Any
@@ -126,11 +124,7 @@ class LogFrame:
     
 
 
-# Logging Types
-TT = Literal['Activation', 'Gradient', 'Weights', r'Optimiser_State\.[a-zA-Z_\-]+','Weight_Gradients']
 
-import torch
-from torch import nn
 
 @dataclass
 class Event:
@@ -167,16 +161,3 @@ class TrainingStats:
     steps: List[int]
     train_loss: List[float]
     val_loss: Optional[List[float]] = None
-
-@dataclass
-class ExponentHistogram:
-    ...
-
-@dataclass
-class ScalarStatistics:
-    ...
-
-@dataclass
-class ScalarAndHist:
-    exp_hist: ExponentHistogram
-    scalar_stats: ScalarStatistics

@@ -1,9 +1,9 @@
-from ._types import TensorType, LogFrame
+from ._types import LogFrame, TrainingStats
 from ._read import read_pickle,read_csv,read_parquet
 
 __all__ = [
-    'TensorType', 
     "LogFrame", 
+    "TrainingStats",
     'read_pickle',
     'read_csv',
     'read_parquet']

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, Union
 import torch
 
 def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,List]:
@@ -12,7 +12,7 @@ def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,Lis
         max_exp (int): the exponent over which you consider the values to be overflowing
 
     Returns:
-        Dict : A dictionary of the containing the tensors for histogram counts & bin edges
+        Dict : A dictionary containing lists for the for histogram counts & bin edges
 
     """
     tensor = tensor.detach()
@@ -29,12 +29,12 @@ def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,Lis
         'bins' : bins.cpu().tolist()
         }
 
-def stash_scalar_stats(tensor: torch.Tensor) -> Dict:
+def stash_scalar_stats(tensor: torch.Tensor) -> Dict[str,Union[int,float]]:
     """
-        Default stash fn for gathering scalar stats, gets the mean, std, abs_mean, abs_min, abs_max, rms (called rm2), rm4 & rm8
+        Default stash value fn for gathering scalar stats, gets the mean, std, abs_mean, abs_min, abs_max, rms (called rm2), rm4 & rm8
 
         Args:
-            t (torch.Tensor): The tensor you're getting the histogram from
+            t (torch.Tensor): The tensor you're getting the stats for.
 
         Returns:
             Dict : A dictionary of the containing the scalar values for various statistics
