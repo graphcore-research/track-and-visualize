@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple, Union, Any
 import warnings
 import numpy as np
 import pandas as pd
-from ._types import Stash
 from ._q import EXP,SCA,META
 from ..._config import _libname
 

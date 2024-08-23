@@ -1,6 +1,7 @@
 import pytest
 
-from ..log.common import LogFrame, TensorType, read_pickle, _utils
+from ..log.common import LogFrame, read_pickle, _utils
+from ..log.common._types import TT as TensorType
 from ..log.common._errors import SchemaException
 # To Do
     # Test for schema validator

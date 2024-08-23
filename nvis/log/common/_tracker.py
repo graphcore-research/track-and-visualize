@@ -6,8 +6,6 @@ from pathlib import Path
 import pickle
 import traceback
 from types import TracebackType
-
-import pandas as pd
 import wandb
 # rel imports
 from ._log_handler import combine_incremental_dfs, global_stash_to_logframe, nuke_intermediate_logframes,summarise_logframe
@@ -19,9 +17,6 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union, B
 import randomname
 logger = logging.getLogger(__name__)
 import msgpack
-import time
-
-
 
 
 def async_wrapper(f: Callable,name: str, step: int, object: ByteString):

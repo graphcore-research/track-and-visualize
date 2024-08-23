@@ -20,6 +20,7 @@ class WidgetHolder:
         self.widgets: Dict[str,widgets.Widget] = {
             **kwargs
         }
+        
         self.hbox_layout = widgets.Layout(flex_flow='row',display='flex',**{'width': '100%','justify-content': 'space-around'})
         self.container = widgets.HBox(
             children=list(self.widgets.values()),

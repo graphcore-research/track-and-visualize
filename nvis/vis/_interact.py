@@ -13,9 +13,8 @@ import traitlets
 import matplotlib
 from functools import partial
 
-
-from ..log.common import TensorType
-from ..log.common._types import TrainingStats
+from ..log.common._types import TT as TensorType
+from ..log.common import TrainingStats
 from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
 from._toolbars import get_toolbar, _ExponentHistogramToolbar, _ScalarLineToolbar
 from ._widget_holder import WidgetHolder

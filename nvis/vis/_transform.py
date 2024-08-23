@@ -1,4 +1,4 @@
-from ..log.common._types import LogFrame, TensorType
+from ..log.common._types import LogFrame
 from ..log.common import _q
 import pandas as _pd
 

@@ -1,6 +1,4 @@
 from typing import Any, Callable, Hashable, Iterable, Literal, Mapping, Sequence
-
-import csv
 from pandas._libs import lib
 
 import pandas as _pd

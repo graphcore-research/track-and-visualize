@@ -11,7 +11,8 @@ import seaborn as sns
 import pandas as pd
 
 from ._transform import _flatten_multi_index  # type: ignore
-from ..log.common import TensorType, _q
+from ..log.common import _q
+from ..log.common._types import TT as TensorType
 from ._facet import FacetGrid, relplot
 
 from ._errors import FacetException, QueryException
@@ -78,7 +79,7 @@ def _gen_facet_query(layer: Union[List[str],str,Pattern], tt: Union[TensorType,L
         tq = f' in {[t.name if type(t) != str else t  for t in df.metadata.tensor_type.unique()]}'
         facet = _q.TTYPE
     elif type(tt) == TensorType or type(tt) == str:
-        tq =  f' == "{tt.name if type(tt) == TensorType else tt}"'
+        tq =  f' == "{tt.name if type(tt) == TensorType else tt}"' #type: ignore
 
     query = f'@df.metadata.name{lq} & @df.metadata.tensor_type{tq}'
 
@@ -269,7 +270,7 @@ class _GlobalHeatmapPlotter(_BasePlotter):
 
 
     def _query(self,df :pd.DataFrame, tt: Union[TensorType,str], inc: int) -> pd.DataFrame:
-        return df.query(f'@df.metadata.tensor_type == "{tt.name if type(tt) == TensorType else tt }" & @df.metadata.step % {inc} == 0')
+        return df.query(f'@df.metadata.tensor_type == "{tt.name if type(tt) == TensorType else tt }" & @df.metadata.step % {inc} == 0') #type: ignore
         
 
     def _plot_single(self,df: pd.DataFrame, ax: matplotlib.axes.Axes):

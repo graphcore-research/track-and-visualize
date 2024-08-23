@@ -17,13 +17,19 @@ from typing import (
     Literal
 )
 
-import torch.utils.hooks
-from torch import Tensor, nn
+
+
 
 from ..common._tracker import BaseTracker
 from ..common._write import lf_to_pickle
 from .stash_values import stash_all_stats_and_hist
 from ..common._types import Stash, Event, StashFn
+
+from ... import _config
+
+if _config._TORCH_EXTRA:
+    import torch.utils.hooks
+    from torch import Tensor, nn
 
 StashValueFn = Callable[[torch.Tensor], Any]
 NamePattern = Union[None, Pattern[str], str]
@@ -268,27 +274,29 @@ def track(
     
     
     """
+    if _config._TORCH_EXTRA:
+        # assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
+        # Check if wandb is logged in and a run has been initialised
 
-    # assert not (use_wandb and wandb_kws!= None), 'Must provide wandb_kws use_wandb==True to init the wandb run'
-    # Check if wandb is logged in and a run has been initialised
+        offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
 
-    offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
-
-    tracker = TorchTracker(
-        get_stash_fn(stash_value=stash_value, stash=None),
-        async_offload=async_offload,
-        only_stash_during_training=only_stash_during_training,
-        offload_fn=offload_fn[offload_type],
-        init_step=init_step,
-        use_wandb=use_wandb,
-        offload_inc=offload_inc)
-    
-    tracker.register_all(module, grad=track_gradients, include=include, exclude=exclude)
-    if optimizer:
-        tracker.register_optimiser(optimizer, param_names = [m for m,p in module.named_parameters()])
-    if track_weights:
-        tracker.register_weights(model=module)
-    return tracker
+        tracker = TorchTracker(
+            get_stash_fn(stash_value=stash_value, stash=None),
+            async_offload=async_offload,
+            only_stash_during_training=only_stash_during_training,
+            offload_fn=offload_fn[offload_type],
+            init_step=init_step,
+            use_wandb=use_wandb,
+            offload_inc=offload_inc)
+        
+        tracker.register_all(module, grad=track_gradients, include=include, exclude=exclude)
+        if optimizer:
+            tracker.register_optimiser(optimizer, param_names = [m for m,p in module.named_parameters()])
+        if track_weights:
+            tracker.register_weights(model=module)
+        return tracker
+    else:
+        raise ImportError(f'track requires pytorch to be installed, please install via `pip install torch or `pip install {_config._libname}[torch]')
 
 
 __all__ = [

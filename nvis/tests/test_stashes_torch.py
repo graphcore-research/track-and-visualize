@@ -1,7 +1,7 @@
+import logging
 from pathlib import Path
 import shutil
 
-from nvis.log.torch.stash_values import stash_scalar_stats
 from ..log.torch import track, stash_all_stats_and_hist
 from ..log import read_pickle
 import torch
@@ -14,6 +14,7 @@ torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 
 INDIM = 2**8
 B_SIZE = 1
+
 
 class SimpleModel(nn.Module):
     def __init__(self, input_size = 32):
@@ -29,7 +30,7 @@ class SimpleModel(nn.Module):
 def test_tracker_cpu():
 
     model = SimpleModel(input_size=INDIM).to('cpu')
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) #type: ignore
 
     
@@ -73,7 +74,7 @@ def test_tracker_cpu():
 
 def test_tracker_cuda():
     model = SimpleModel(input_size=INDIM).to('cuda')
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) #type: ignore
 
 
@@ -95,6 +96,55 @@ def test_tracker_cuda():
             tracker.step()
 
     p_names = [n[0].split('.')[0] for n in model.named_parameters()]
+    logging.warning(p_names)
+
+    if tracker.out_path != None:
+        df = read_pickle(tracker.out_path)
+
+        for tt in df.metadata.tensor_type.unique().tolist():
+
+            if tt not in ['Activation', 'Gradient']:
+
+                names = df.query(f'@df.metadata.tensor_type == "{tt}"').metadata.name.unique().tolist() #type: ignore
+
+                assert set(names) == set(p_names), f'{tt} tracked {len(set(names))} but it should have tracked {len(set(p_names))}'
+    else:
+        assert False, 'Test failed because the tracker did not output a logframe'
+
+
+    # clean up
+    p = Path(f"./{_libname}")
+    shutil.rmtree(p)
+
+
+def test_tracker_torch_compile():
+
+    model = SimpleModel(input_size=INDIM).to('cuda')
+    loss_fn = torch.nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) #type: ignore
+    
+
+    model = torch.compile(model) #type: ignore
+    p_names = [".".join(n[0].split('.')[:-1]) for n in model.named_parameters()]
+    with track(
+    module=model,#type: ignore
+    track_gradients=True,
+    optimizer=optimizer,
+    track_weights=True,
+    offload_inc=1,
+    stash_value=stash_all_stats_and_hist) as tracker:
+        for i in range(10): 
+            X = torch.randn((B_SIZE,INDIM)).to('cuda')
+            Y = torch.randint(0,2,(B_SIZE,1)).float().to('cuda')
+            optimizer.zero_grad()
+            y = model(X)
+            loss = loss_fn(y,Y)
+            loss.backward()
+            optimizer.step()
+            tracker.step()
+
+    
+    logging.warning(p_names)
 
     if tracker.out_path != None:
         df = read_pickle(tracker.out_path)

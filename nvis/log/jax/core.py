@@ -1,19 +1,23 @@
 from functools import partial
 from re import Pattern
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+import re
+from ... import _config
 
-from flax.linen import intercept_methods
 from ..common._tracker import BaseTracker
 from ..common._types import Event, StashFn,Stash, TT
 from ..common._write import lf_to_pickle
-import jax
-import jax.numpy as jnp
-import numpy as np
-from ._utils import forward_callback,backward_callback
-from .stash_values import stash_all_stats_and_hist
-from optax._src.base import NamedTuple,EmptyState
-from jax.tree_util import tree_flatten_with_path
-import re
+
+
+if _config._JAX_EXTRA:
+    from ._utils import forward_callback,backward_callback
+    from .stash_values import stash_all_stats_and_hist
+    from optax._src.base import NamedTuple,EmptyState
+    from jax.tree_util import tree_flatten_with_path
+    from flax.linen import intercept_methods
+    import jax
+
+
 
 
 StashValueFn = Callable[[jax.Array], Any]
@@ -100,8 +104,7 @@ class JaxTracker(BaseTracker):
         
 
     def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: Any | None) -> None:
-        # return super().__exit__(exc_type, exc, traceback)
-        ...
+        return super().__exit__(exc_type, exc, traceback)
 
     def _check_included(self,name: str) -> bool:
         return ((not self.include) or self.include.search(name)) and not (self.exclude and self.exclude.search(name)) #type: ignore
@@ -383,26 +386,27 @@ def track(
     
         """
     
+    if _config._JAX_EXTRA:
+        offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
+        
+        tracker = JaxTracker(
+            stash=get_stash_fn(stash_value=stash_value, stash=None),
+            async_offload=async_offload,
+            offload_inc=offload_inc,
+            offload_fn=offload_fn[offload_type],
+            track_gradients = track_gradients,
+            model_state = model_state,
+            optimizer_state = optimizer_state,
+            include=include,
+            exclude=exclude,
+            use_wandb=use_wandb,
+            init_step=init_step,
+            )
+        
+        return tracker
     
-    offload_fn: Dict[str,Callable] = {'.pkl' : lf_to_pickle}
-    
-    tracker = JaxTracker(
-        stash=get_stash_fn(stash_value=stash_value, stash=None),
-        async_offload=async_offload,
-        offload_inc=offload_inc,
-        offload_fn=offload_fn[offload_type],
-        track_gradients = track_gradients,
-        model_state = model_state,
-        optimizer_state = optimizer_state,
-        include=include,
-        exclude=exclude,
-        use_wandb=use_wandb,
-        init_step=init_step,
-        )
-
-    
-
-    return tracker
+    else:
+        raise ImportError(f'track requires jax,flax and optax to be installed, please install via `pip install jax,flax,optax or `pip install {_config._libname}[jax]')
 
 
 __all__ = [

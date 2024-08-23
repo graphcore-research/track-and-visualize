@@ -4,8 +4,12 @@ import jax.numpy as jnp
 import numpy as np
 from jax.experimental import host_callback as hcb
 
+def _concretize_as_list(value: Dict[str,jax.Array]) -> Dict[str, List]:
+    return {k:jax.device_get(v).tolist() for k,v in value.items()}
 
-# isinstance(x,jax.Array)
+def _concretize_as_scalar(value: Dict[str,jax.Array]) -> Dict[str, Union[int,float]]:
+    return {k:jax.device_get(v).item() for k,v in value.items()}
+
 
 def exp_histogram(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[str,jax.Array]:
     """
@@ -32,11 +36,11 @@ def exp_histogram(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[str,jax.Ar
 
     # Import to call `jax.device_get`, to move to host an end jit trace
     return dict(
-        hist=jax.device_get(hist[0].astype(int)).tolist(),
-        bins=jax.device_get(hist[1].astype(int)[:-1]).tolist()
+        hist=hist[0].astype(int),
+        bins=hist[1].astype(int)[:-1]
     )
 
-def stash_scalar_stats(tensor: jax.Array) -> Dict[str,Union[int,float]]:
+def _stash_scalar_stats(tensor: jax.Array) -> Dict[str,jax.Array]:
     """
         Default stash value fn for gathering scalar stats, gets the mean, std, abs_mean, abs_min, abs_max, rms (called rm2), rm4 & rm8
 
@@ -54,19 +58,20 @@ def stash_scalar_stats(tensor: jax.Array) -> Dict[str,Union[int,float]]:
     tensor = jax.lax.stop_gradient(tensor)
     rm2 = jnp.pow(jnp.mean(jnp.pow(tensor,2)),1 / 2)
     abs_t = jnp.abs(tensor)
-    abs_t.mean()
-
     # Import to call `jax.device_get`, to move to host an end jit trace
     return {
-        "mean": jax.device_get(tensor.mean()).item(),
-        "std": jax.device_get(tensor.std()).item(),
-        "mean_abs" : jax.device_get(abs_t.mean()).item(),
-        "max_abs" : jax.device_get(abs_t.max()).item(),
-        "min_abs" : jax.device_get(abs_t.min()).item(),
-        "rm2" : jax.device_get(rm2).item(),
-        "rm4" : jax.device_get(jnp.pow(jnp.pow(tensor.__div__(rm2),4).mean(),1 / 4).__mul__(rm2)).item(), # type: ignore
-        "rm8" : jax.device_get(jnp.pow(jnp.pow(tensor.__div__(rm2),8).mean(),1 / 8).__mul__(rm2)).item() # type: ignore
+        "mean": tensor.mean(),
+        "std": tensor.std(),
+        "mean_abs" : abs_t.mean(),
+        "max_abs" : abs_t.max(),
+        "min_abs" : abs_t.min(),
+        "rm2" : rm2,
+        "rm4" : jnp.pow(jnp.pow(tensor.__div__(rm2),4).mean(),1 / 4).__mul__(rm2), # type: ignore
+        "rm8" : jnp.pow(jnp.pow(tensor.__div__(rm2),8).mean(),1 / 8).__mul__(rm2) # type: ignore
     }
+
+def stash_scalar_stats(tensor: jax.Array) -> Dict[str,Union[int,float]]:
+    return _concretize_as_scalar(_stash_scalar_stats(tensor))
 
 def stash_hist(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict:
     """
@@ -82,7 +87,7 @@ def stash_hist(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict:
             ```
     
     """
-    return {'exp_hist': exp_histogram(tensor,min_exp,max_exp)}
+    return {'exp_hist': _concretize_as_list(exp_histogram(tensor,min_exp,max_exp))}
 
 
 def stash_all_stats_and_hist(tensor: jax.Array) -> Dict[str,Dict]:
@@ -100,7 +105,7 @@ def stash_all_stats_and_hist(tensor: jax.Array) -> Dict[str,Dict]:
     """
     return {
         'scalar_stats' : stash_scalar_stats(tensor=tensor),
-        'exp_hist' : exp_histogram(tensor=tensor)
+        'exp_hist' : _concretize_as_list(exp_histogram(tensor=tensor))
     }
 
 

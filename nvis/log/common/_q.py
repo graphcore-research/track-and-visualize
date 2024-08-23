@@ -1,6 +1,3 @@
-# Pandas Query utils
-# Column Tuples -> so if schema changes 
-from ast import Name
 from typing import Literal, Tuple
 
 
