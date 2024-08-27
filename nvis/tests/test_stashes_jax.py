@@ -66,7 +66,7 @@ def gen_unit_gauss(B,N,key):
     return mean + std_dev * jax.random.normal(key, (B,N),dtype=jnp.float32)
 
 
-def test_flax_cpu():
+def test_flax():
     key = jax.random.PRNGKey(0)
     x = jnp.ones((B_SIZE, INDIM))
     step_size = 0.001
@@ -97,7 +97,7 @@ def test_flax_cpu():
 
     with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
         for i in range(10):
-            model_state,opt_state,grads = update(model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
+            model_state,opt_state,grads = tracker.intercept(update,model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
             tracker.step(model_state,opt_state,grads)
 
     if tracker.out_path != None:
@@ -121,115 +121,62 @@ def test_flax_cpu():
 
 
 
-def test_flax_cuda():
-    key = jax.random.PRNGKey(0)
-    x = jnp.ones((B_SIZE, INDIM))
-    step_size = 0.001
+# def test_flax_jit():
+#     key = jax.random.PRNGKey(0)
+#     x = jnp.ones((B_SIZE, INDIM))
+#     step_size = 0.001
 
-    model = MainModuleSetup(hidden_features=INDIM,output_features=OUTDIM)
-    # Initialize parameters
-    model_state = model.init(key, x)
-
-
-    optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
-    opt_state = optimizer.init(model_state)
-
-    flat, _ = tree_util.tree_flatten_with_path(model_state)
-    p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
-
-    @jax.jit
-    def loss_fn(params, x, y):
-        y_pred = model.apply(params, x)
-        return jnp.mean((y_pred - y) ** 2)
+#     model = MainModuleSetup(hidden_features=INDIM,output_features=OUTDIM)
+#     # Initialize parameters
+#     model_state = model.init(key, x)
 
 
-    def update(model_state,opt_state,optimizer, x, y):
-        grads = jax.grad(loss_fn)(model_state,x,y)
-        updates, opt_state = optimizer.update(grads, opt_state, model_state)
-        model_state = optax.apply_updates(model_state, updates)
+#     optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
+#     opt_state = optimizer.init(model_state)
 
-        return model_state,opt_state,grads
+#     flat, _ = tree_util.tree_flatten_with_path(model_state)
+#     p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
 
-
-    with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
-        for i in range(10):
-            model_state,opt_state,grads = update(model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
-            tracker.step(model_state,opt_state,grads)
+#     @jax.jit
+#     def loss_fn(params, x, y):
+#         y_pred = model.apply(params, x)
+#         return jnp.mean((y_pred - y) ** 2)
 
 
-    if tracker.out_path != None:
-        df = read_pickle(tracker.out_path)
+#     def update(model_state,opt_state,optimizer, x, y):
+#         grads = jax.grad(loss_fn)(model_state,x,y)
+#         updates, opt_state = optimizer.update(grads, opt_state, model_state)
+#         model_state = optax.apply_updates(model_state, updates)
 
-        for tt in df.metadata.tensor_type.unique().tolist():
-
-            if tt not in ['Activation', 'Gradient']:
-
-                names = df.query(f'@df.metadata.tensor_type == "{tt}"').metadata.name.unique().tolist() #type: ignore
-                logging.warning(names)
-
-                assert set(names) == set(p_names), f'{tt} tracked {len(set(names))} but it should have tracked {len(set(p_names))}'
-    else:
-        assert False, 'Test failed because the tracker did not output a logframe'
+#         return model_state,opt_state,grads
 
 
-    # clean up
-    p = Path(f"./{_libname}")
-    shutil.rmtree(p)
-
-def test_flax_compact_cpu():
-    key = jax.random.PRNGKey(0)
-    x = jnp.ones((B_SIZE, INDIM))
-    step_size = 0.001
-
-    model = MainModuleCompact(hidden_features=INDIM,output_features=OUTDIM)
-    # Initialize parameters
-    model_state = model.init(key, x)
-
-    flat, _ = tree_util.tree_flatten_with_path(model_state)
-    p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
+#     with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
+#         for i in range(10):
+#             model_state,opt_state,grads = tracker.intercept(update,model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
+#             tracker.step(model_state,opt_state,grads)
 
 
-    optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
-    opt_state = optimizer.init(model_state)
+#     if tracker.out_path != None:
+#         df = read_pickle(tracker.out_path)
 
-    def loss_fn(params, x, y):
-        y_pred = model.apply(params, x)
-        return jnp.mean((y_pred - y) ** 2)
+#         for tt in df.metadata.tensor_type.unique().tolist():
 
+#             if tt not in ['Activation', 'Gradient']:
 
-    def update(model_state,opt_state,optimizer, x, y):
-        grads = jax.grad(loss_fn)(model_state,x,y)
-        updates, opt_state = optimizer.update(grads, opt_state, model_state)
-        model_state = optax.apply_updates(model_state, updates)
+#                 names = df.query(f'@df.metadata.tensor_type == "{tt}"').metadata.name.unique().tolist() #type: ignore
+#                 logging.warning(names)
 
-        return model_state,opt_state,grads
-
-
-    with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
-        for i in range(10):
-            model_state,opt_state,grads = update(model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
-            tracker.step(model_state,opt_state,grads)
-
-    if tracker.out_path != None:
-        df = read_pickle(tracker.out_path)
-
-        for tt in df.metadata.tensor_type.unique().tolist():
-
-            if tt not in ['Activation', 'Gradient']:
-
-                names = df.query(f'@df.metadata.tensor_type == "{tt}"').metadata.name.unique().tolist() #type: ignore
-                logging.warning(names)
-
-                assert set(names) == set(p_names), f'{tt} tracked {len(set(names))} but it should have tracked {len(set(p_names))}'
-    else:
-        assert False, 'Test failed because the tracker did not output a logframe'
+#                 assert set(names) == set(p_names), f'{tt} tracked {len(set(names))} but it should have tracked {len(set(p_names))}'
+#     else:
+#         assert False, 'Test failed because the tracker did not output a logframe'
 
 
-    # clean up
-    p = Path(f"./{_libname}")
-    shutil.rmtree(p)
+#     # clean up
+#     p = Path(f"./{_libname}")
+#     shutil.rmtree(p)
 
-def test_flax_compact_gpu():
+def test_flax_compact():
     key = jax.random.PRNGKey(0)
     x = jnp.ones((B_SIZE, INDIM))
     step_size = 0.001
@@ -238,14 +185,13 @@ def test_flax_compact_gpu():
     # Initialize parameters
     model_state = model.init(key, x)
 
+    flat, _ = tree_util.tree_flatten_with_path(model_state)
+    p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
+
 
     optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
     opt_state = optimizer.init(model_state)
 
-    flat, _ = tree_util.tree_flatten_with_path(model_state)
-    p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
-
-    @jax.jit
     def loss_fn(params, x, y):
         y_pred = model.apply(params, x)
         return jnp.mean((y_pred - y) ** 2)
@@ -261,9 +207,8 @@ def test_flax_compact_gpu():
 
     with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
         for i in range(10):
-            model_state,opt_state,grads = update(model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
+            model_state,opt_state,grads = tracker.intercept(update,model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
             tracker.step(model_state,opt_state,grads)
-
 
     if tracker.out_path != None:
         df = read_pickle(tracker.out_path)
@@ -283,3 +228,58 @@ def test_flax_compact_gpu():
     # clean up
     p = Path(f"./{_libname}")
     shutil.rmtree(p)
+
+# def test_flax_compact_jit():
+#     key = jax.random.PRNGKey(0)
+#     x = jnp.ones((B_SIZE, INDIM))
+#     step_size = 0.001
+
+#     model = MainModuleCompact(hidden_features=INDIM,output_features=OUTDIM)
+#     # Initialize parameters
+#     model_state = model.init(key, x)
+
+
+#     optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
+#     opt_state = optimizer.init(model_state)
+
+#     flat, _ = tree_util.tree_flatten_with_path(model_state)
+#     p_names = list(set([".".join([key.key for key in  fl[0][1:-1]]) for fl in flat]))
+
+#     @jax.jit
+#     def loss_fn(params, x, y):
+#         y_pred = model.apply(params, x)
+#         return jnp.mean((y_pred - y) ** 2)
+
+
+#     def update(model_state,opt_state,optimizer, x, y):
+#         grads = jax.grad(loss_fn)(model_state,x,y)
+#         updates, opt_state = optimizer.update(grads, opt_state, model_state)
+#         model_state = optax.apply_updates(model_state, updates)
+
+#         return model_state,opt_state,grads
+
+
+#     with track(track_gradients=True,model_state=model_state,optimizer_state=opt_state) as tracker:
+#         for i in range(10):
+#             model_state,opt_state,grads = tracker.intercept(update,model_state,opt_state,optimizer,gen_unit_gauss(B_SIZE,INDIM,i),jnp.ones((1,)))
+#             tracker.step(model_state,opt_state,grads)
+
+
+#     if tracker.out_path != None:
+#         df = read_pickle(tracker.out_path)
+
+#         for tt in df.metadata.tensor_type.unique().tolist():
+
+#             if tt not in ['Activation', 'Gradient']:
+
+#                 names = df.query(f'@df.metadata.tensor_type == "{tt}"').metadata.name.unique().tolist() #type: ignore
+#                 logging.warning(names)
+
+#                 assert set(names) == set(p_names), f'{tt} tracked {len(set(names))} but it should have tracked {len(set(p_names))}'
+#     else:
+#         assert False, 'Test failed because the tracker did not output a logframe'
+
+
+#     # clean up
+#     p = Path(f"./{_libname}")
+#     shutil.rmtree(p)
