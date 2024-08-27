@@ -96,7 +96,7 @@ def global_stash_to_logframe(
                         df_dict[META(key)].append(value)
 
                 else:
-                    assert (value is dict), f"{key} needs to be \
+                    assert (type(value) is dict), f"{key} needs to be \
                         a dict not {type(value)}, {value}"
                     for value_type, nested_dict in value.items():
                         if value_type == "exp_hist":

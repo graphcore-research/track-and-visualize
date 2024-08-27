@@ -1,8 +1,4 @@
-# numerics vis
-
-  
-
-Repo for working on numerics-vis
+# Track & Visualize
 
 ## Installation
 ```

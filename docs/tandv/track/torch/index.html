@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.1">
+<title>tandv.track.torch API documentation</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>tandv.track.torch</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="tandv.track.torch.core" href="core.html">tandv.track.torch.core</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="tandv.track.torch.stash_values" href="stash_values.html">tandv.track.torch.stash_values</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="tandv.track.torch.stash_all_stats_and_hist"><code class="name flex">
+<span>def <span class="ident">stash_all_stats_and_hist</span></span>(<span>tensor: torch.Tensor) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The default stash value function, and the one which
+is most compatible with the visualisation library.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>tensor</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The tensor you're
+getting the the stastics for.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Dict </code></dt>
+<dd>A dictionary of the containing the scalar
+statistics and the Exponent Histogram for the tensor.</dd>
+</dl>
+<pre><code class="language-python">{'scalar_stats' {'stat1' : 0.0,...},             'exp_hist' : {'hist' : [...], 'bins' : [... ]}}
+</code></pre></div>
+</dd>
+<dt id="tandv.track.torch.stash_full_tensor"><code class="name flex">
+<span>def <span class="ident">stash_full_tensor</span></span>(<span>tensor: torch.Tensor) ‑> Dict[str, torch.Tensor]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.torch.stash_hist"><code class="name flex">
+<span>def <span class="ident">stash_hist</span></span>(<span>tensor: torch.Tensor, min_exp=-16, max_exp=16) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the exponent histogram for the Tensor, values under
+min_exp and over max_exp will be set to +/- infitity.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>tensor</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The tensor you're getting the histogram from</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Dict </code></dt>
+<dd>A dictionary of the containing the scalar
+statistics and the Exponent Histogram for the tensor.</dd>
+</dl>
+<pre><code class="language-python">{'exp_hist' : {'hist' : [...], 'bins' : [... ]}}
+</code></pre></div>
+</dd>
+<dt id="tandv.track.torch.stash_scalar_stats"><code class="name flex">
+<span>def <span class="ident">stash_scalar_stats</span></span>(<span>tensor: torch.Tensor) ‑> Dict[str, Union[int, float]]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Default stash value fn for gathering scalar stats,
+gets the mean, std, abs_mean, abs_min, abs_max, rms (called rm2),
+rm4 &amp; rm8</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>t</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The tensor you're getting the stats for.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Dict </code></dt>
+<dd>A dictionary of the containing the scalar
+values for various statistics</dd>
+</dl>
+<pre><code class="language-python">{'stat1' : 0.0,...}
+</code></pre></div>
+</dd>
+<dt id="tandv.track.torch.track"><code class="name flex">
+<span>def <span class="ident">track</span></span>(<span>module: torch.nn.modules.module.Module, track_gradients: bool = True, optimizer: Optional[torch.optim.optimizer.Optimizer] = None, track_weights: bool = True, include: Union[ForwardRef(None), Pattern[str], str] = None, exclude: Union[ForwardRef(None), Pattern[str], str] = None, stash_value: Optional[Callable[[torch.Tensor], Any]] = None, async_offload: bool = False, offload_inc: int = 10, offload_type: Literal['.pkl'] = '.pkl', use_wandb: bool = False, only_stash_during_training=True, init_step=None) ‑> <a title="tandv.track.torch.core.TorchTracker" href="core.html#tandv.track.torch.core.TorchTracker">TorchTracker</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function for initialising the Pytorch Tensor Tracker context manager.</p>
+<p>By default it tracks the stastics for
+what we refer to as the
+Activations (i.e. the outputs of the forward method in the nn module).
+However it can also track
+gradients, weights and optimiser state. At the end of training it will
+write all the logs to a LogFrame (a <code>pd.DataFrame</code> which conforms to
+the schema outline in our docs)</p>
+<pre><code class="language-python">    with track(...) as tracker:
+        #Your training loop goes here
+        for i in range(max_its):
+            # fwd &amp; bwd pass
+            tracker.step() # at the end of your loop
+
+</code></pre>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>module</code></strong> :&ensp;<code>nn.Module</code></dt>
+<dd>The top level module you wish to track, this
+would
+typically be the root class your use to define your model,
+the tracker will then recursively find all the submodules
+and add tracking hooks to their respective tensors</dd>
+<dt><strong><code>track_gradients</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether or not you wish to track the gradients.</dd>
+<dt><strong><code>optimizer</code></strong> :&ensp;<code>torch.optim.Optimizer | None</code></dt>
+<dd>If you wish to track the
+optimiser state, pass it as an argument.</dd>
+<dt><strong><code>track_weights</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether or not to track the models
+weights/parameters.</dd>
+<dt>include (None | Pattern[str] | str) : A module or modules (via regex)
+you wish to track.</dt>
+<dt>exclude (None | Pattern[str] | str) : A module or modules (via regex)
+you wish not to track.</dt>
+<dt><strong><code>stash_value</code></strong> :&ensp;<code>StashValueFn</code></dt>
+<dd>This is the statistics you wish to track,
+it defaults to <code><a title="tandv.track.torch.stash_all_stats_and_hist" href="#tandv.track.torch.stash_all_stats_and_hist">stash_all_stats_and_hist()</a></code>, you can provide a
+custom fn
+here however inspect the other stash_fns to see the
+required args/returns values.</dd>
+<dt><strong><code>async_offload</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If true the set of stashes since last offloaded
+are serialised and passed to a seperate python process to be
+converted to a Logframe (currently a very limited
+reduction in overhead, but working on improving it)</dd>
+<dt><strong><code>offload_inc</code></strong> :&ensp;<code>int</code></dt>
+<dd>How frequently you wish to the stashes from memory
+to disk, i.e. offload more frequently to minimise
+TorchTracker's
+memory usage. If using wandb, this value should be the
+same (or a multiple) of the increment being used to
+call `wandb.log'</dd>
+<dt>offload_type (Literal['.pkl']): The file format you wish to
+write the LogFrame(s) to disk as.</dt>
+<dt><strong><code>use_wandb</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If you wish to push the Logframes as
+artifacts and get summary numerics statistic in wandb.
+(<code>offload_inc</code> should be the same (or a multiple) of
+the increment being used to call `wandb.log')</dd>
+<dt><strong><code>only_stash_during_training</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Torch Tracker can track
+statistics for Activations when the model is in eval mode
+(the default behaviour is for this not to be the case
+and only track activations during training)</dd>
+<dt><strong><code>init_step</code></strong> :&ensp;<code>int</code></dt>
+<dd>The tracker has an internal step property for
+assigning statistics to the correct iteration, if
+<code>init_step == None</code>, defaults to zero, else
+init_step (if you are continuing from a checkpoint
+for example)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>TorchTracker (The context manger)</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="tandv.track.torch.TorchTracker"><code class="flex name class">
+<span>class <span class="ident">TorchTracker</span></span>
+<span>(</span><span>stash: Callable[[tandv.track.common._types.Event], tandv.track.common._types.Stash], async_offload: bool, only_stash_during_training: bool, offload_inc: int, offload_fn: Callable, use_wandb: bool, name: Optional[str] = None, init_step: int | None = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class TorchTracker(BaseTracker):
+    def __init__(
+        self,
+        stash: Callable[[Event], Stash],
+        async_offload: bool,
+        only_stash_during_training: bool,
+        offload_inc: int,
+        offload_fn: Callable,
+        use_wandb: bool,
+        name: str | None = None,
+        init_step: int | None = None,
+    ):
+        super().__init__(
+            stash, name, init_step, async_offload,
+            offload_inc, offload_fn, use_wandb
+        )
+        self._handles: List[torch.utils.hooks.RemovableHandle] = []
+        self._model: Union[torch.nn.Module, None] = None
+        self.only_stash_during_training = only_stash_during_training
+        self.track_gradients: bool = False  # torch specific
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -&gt; None:
+        self.unregister()
+        super().__exit__(exc_type, exc, traceback)
+
+    # REGISTERING ENTITIES TO BE TRACKED
+    def register(self,
+                 module: nn.Module,
+                 name: str = &#34;&#34;,
+                 grad: bool = True) -&gt; None:
+        self._handles.append(
+            module.register_forward_hook(
+                partial(
+                    (
+                        self._forward_hook_v2
+                        if self.only_stash_during_training
+                        else self._forward_hook_v1
+                    ),
+                    name=name,
+                ),
+                with_kwargs=True,
+            )
+        )
+        if grad:
+            self._handles.append(
+                module.register_full_backward_pre_hook(
+                    partial(self._backward_hook, name=name)
+                )
+            )
+
+    def register_optimiser(self,
+                           optimizer: torch.optim.Optimizer,
+                           param_names: List[str]) -&gt; None:  # type: ignore
+        self._handles.append(
+            optimizer.register_step_pre_hook(
+                partial(self._optim_step_hook, p_names=param_names)
+            )
+        )
+
+    def register_weights(self, model: nn.Module):
+        self._model = model
+        # capture the initial model weights
+        self._stash_model_weights()
+
+    def register_all(
+        self,
+        module: nn.Module,
+        grad: bool = True,
+        include: NamePattern = None,
+        exclude: NamePattern = None,
+    ) -&gt; None:
+        include = re.compile(include) if isinstance(include, str) else include
+        exclude = re.compile(exclude) if isinstance(exclude, str) else exclude
+        self.track_gradients = grad
+        for name, child in module.named_modules():
+            if ((not include) or include.search(name)) and not (
+                exclude and exclude.search(name)
+            ):
+                self.register(child, name, grad=grad)
+
+    def unregister(self) -&gt; None:
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+    # HOOKS WHICH ARE USED TO CAPTURE TENSOR STATS
+    def _forward_hook_v1(
+        self,
+        module: nn.Module,
+        args: Tuple[Any],
+        kwargs: Dict[str, Any],
+        output: Any,
+        *,
+        name: str,
+    ) -&gt; None:
+        # only do stashes when training?
+        self.stash_event(Event(name, str(type(module)),
+                               &#34;Activation&#34;, output, (), {}))
+
+    def _forward_hook_v2(
+        self,
+        module: nn.Module,
+        args: Tuple[Any],
+        kwargs: Dict[str, Any],
+        output: Any,
+        *,
+        name: str,
+    ) -&gt; None:
+        # only do stashes when training?
+        if module.training:
+            self.stash_event(
+                Event(name, str(type(module)), &#34;Activation&#34;, output, (), {})
+            )
+
+    def _backward_hook(self,
+                       module: nn.Module,
+                       grad_output: Any,
+                       *, name: str) -&gt; None:
+        self.stash_event(
+            Event(name, str(type(module)), &#34;Gradient&#34;, grad_output, (), {})
+        )
+
+    def _optim_step_hook(
+        self, optimizer: torch.optim.Optimizer, *args, **kwargs  # type: ignore
+    ):
+        &#34;&#34;&#34;
+        Stashes values for each tensor in the optimizer&#39;s `state_dict` .
+
+        &#34;&#34;&#34;
+
+        for pn, state in zip(
+            kwargs.get(&#34;p_names&#34;, []), optimizer.state_dict()[&#34;state&#34;].values()
+        ):
+            for k, v in state.items():
+                if k != &#34;step&#34;:
+                    self.stash_event(Event(
+                        pn.removesuffix(&#34;.weight&#34;), None,
+                        f&#34;Optimiser_State.{k}&#34;, v, (), {}))  # type: ignore
+
+    def _stash_model_weights(self):
+        &#34;&#34;&#34;
+        Stashes values for each weight parameter tensor in the model.
+
+        &#34;&#34;&#34;
+
+        if self._model and not (
+            not self._model.training and self.only_stash_during_training
+        ):
+            for name, params in self._model.named_parameters():
+                self.stash_event(
+                    Event(
+                        name.removesuffix(&#34;.weight&#34;),
+                        None,
+                        &#34;Weights&#34;,
+                        params.data,
+                        (),
+                        {},
+                    )
+                )
+                if self.track_gradients and params.grad is not None:
+                    self.stash_event(
+                        Event(
+                            name.removesuffix(&#34;.weight&#34;),
+                            None,
+                            &#34;Weight_Gradients&#34;,
+                            params.grad,
+                            (),
+                            {},
+                        )
+                    )
+
+    def step(self):
+        &#34;&#34;&#34;
+        Method to notify the tracker of the completion of a \
+            single training step/iteration.
+
+        Args
+           ...
+        Returns
+            None
+
+        &#34;&#34;&#34;
+        self._internal_step()
+        # post update weights (init state for step n+1)
+        if self._model:
+            self._stash_model_weights()</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tandv.track.common._tracker.BaseTracker</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="tandv.track.torch.TorchTracker.register"><code class="name flex">
+<span>def <span class="ident">register</span></span>(<span>self, module: torch.nn.modules.module.Module, name: str = '', grad: bool = True) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.torch.TorchTracker.register_all"><code class="name flex">
+<span>def <span class="ident">register_all</span></span>(<span>self, module: torch.nn.modules.module.Module, grad: bool = True, include: Union[ForwardRef(None), Pattern[str], str] = None, exclude: Union[ForwardRef(None), Pattern[str], str] = None) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.torch.TorchTracker.register_optimiser"><code class="name flex">
+<span>def <span class="ident">register_optimiser</span></span>(<span>self, optimizer: torch.optim.optimizer.Optimizer, param_names: List[str]) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.torch.TorchTracker.register_weights"><code class="name flex">
+<span>def <span class="ident">register_weights</span></span>(<span>self, model: torch.nn.modules.module.Module)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.torch.TorchTracker.step"><code class="name flex">
+<span>def <span class="ident">step</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Method to notify the tracker of the completion of a
+single training step/iteration.</p>
+<p>Args
+&hellip;
+Returns
+None</p></div>
+</dd>
+<dt id="tandv.track.torch.TorchTracker.unregister"><code class="name flex">
+<span>def <span class="ident">unregister</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="tandv.track" href="../index.html">tandv.track</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="tandv.track.torch.core" href="core.html">tandv.track.torch.core</a></code></li>
+<li><code><a title="tandv.track.torch.stash_values" href="stash_values.html">tandv.track.torch.stash_values</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="tandv.track.torch.stash_all_stats_and_hist" href="#tandv.track.torch.stash_all_stats_and_hist">stash_all_stats_and_hist</a></code></li>
+<li><code><a title="tandv.track.torch.stash_full_tensor" href="#tandv.track.torch.stash_full_tensor">stash_full_tensor</a></code></li>
+<li><code><a title="tandv.track.torch.stash_hist" href="#tandv.track.torch.stash_hist">stash_hist</a></code></li>
+<li><code><a title="tandv.track.torch.stash_scalar_stats" href="#tandv.track.torch.stash_scalar_stats">stash_scalar_stats</a></code></li>
+<li><code><a title="tandv.track.torch.track" href="#tandv.track.torch.track">track</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="tandv.track.torch.TorchTracker" href="#tandv.track.torch.TorchTracker">TorchTracker</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tandv.track.torch.TorchTracker.register" href="#tandv.track.torch.TorchTracker.register">register</a></code></li>
+<li><code><a title="tandv.track.torch.TorchTracker.register_all" href="#tandv.track.torch.TorchTracker.register_all">register_all</a></code></li>
+<li><code><a title="tandv.track.torch.TorchTracker.register_optimiser" href="#tandv.track.torch.TorchTracker.register_optimiser">register_optimiser</a></code></li>
+<li><code><a title="tandv.track.torch.TorchTracker.register_weights" href="#tandv.track.torch.TorchTracker.register_weights">register_weights</a></code></li>
+<li><code><a title="tandv.track.torch.TorchTracker.step" href="#tandv.track.torch.TorchTracker.step">step</a></code></li>
+<li><code><a title="tandv.track.torch.TorchTracker.unregister" href="#tandv.track.torch.TorchTracker.unregister">unregister</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.1</a>.</p>
+</footer>
+</body>
+</html>

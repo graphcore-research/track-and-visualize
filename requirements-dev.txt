@@ -1,5 +1,13 @@
 -r requirements.txt
-flake8
-mypy
 black
+flake8
 isort
+jupyter
+mypy
+pandas
+pandas-stubs
+pdoc3
+pylint
+pytest
+pytest-cov
+

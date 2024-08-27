@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 from torch import nn
 from torch.nn import functional as F
-from ..track import read_pickle
+from ..track.common import read_pickle
 from ..track.torch import stash_all_stats_and_hist, track
 
 torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul

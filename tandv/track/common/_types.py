@@ -185,6 +185,19 @@ class Event:
     kwargs: Dict[str, Any]
 
 
+Event.__doc__ = """
+        Dataclass for storing capture events when tracking tensors
+
+        Args:
+            name (str): module name
+            type: (ModuleType): The module type (from framework) is available
+            tensor_type: (TT): The type of tensor the stats are being gathered for
+            value (Any): The stashed values for the tensors (see `stash_values`
+            args : ...
+            kwargs: ...
+    """
+
+
 @dataclass
 class Stash:
     name: str
@@ -203,6 +216,19 @@ class Stash:
         return _value(self.value)
 
 
+Stash.__doc__ = """
+        Dataclass for storing stats and associated metadata
+
+        Args:
+            name (str): module name
+            type: (ModuleType): The module type (from framework) is available
+            tensor_type: (TT): The type of tensor the stats are being gathered\
+                for
+            dtype (Dtype) : The dtype of the tensor when stats were captured \
+                for it.
+            value (Any): The stashed values for the tensors (see `stash_values`
+    """
+
 StashFn = Callable[[Event], Stash]
 
 
@@ -211,3 +237,14 @@ class TrainingStats:
     steps: List[int]
     train_loss: List[float]
     val_loss: Optional[List[float]] = None
+
+
+TrainingStats.__doc__ = """
+        Dataclass for passing training statistics into interaction
+        visualisations
+
+        Args:
+            steps (List[int]): List of Training Steps
+            train_loss (List[float]) : List of training loss values
+            val_loss (List[Float] | None): List of validation loss values
+    """

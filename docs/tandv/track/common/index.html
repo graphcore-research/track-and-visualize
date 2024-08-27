@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.1">
+<title>tandv.track.common API documentation</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>tandv.track.common</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="tandv.track.common.wandb_int" href="wandb_int.html">tandv.track.common.wandb_int</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="tandv.track.common.read_csv"><code class="name flex">
+<span>def <span class="ident">read_csv</span></span>(<span>filepath_or_buffer: Union[str, ForwardRef('PathLike[str]'), pandas._typing.ReadCsvBuffer[bytes], pandas._typing.ReadCsvBuffer[str]], *args, schema_map: Any = None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.common.read_parquet"><code class="name flex">
+<span>def <span class="ident">read_parquet</span></span>(<span>path: Union[str, ForwardRef('PathLike[str]'), pandas._typing.ReadBuffer[bytes]], schema_map: Any = None, engine: str = 'auto', columns: list[str] | None = None, storage_options: Optional[dict[str, typing.Any]] = None, use_nullable_dtypes: Union[bool, Literal[<no_default>]] = _NoDefault.no_default, dtype_backend: Union[Literal['pyarrow', 'numpy_nullable'], Literal[<no_default>]] = _NoDefault.no_default, filesystem: Any = None, filters: list[tuple] | list[list[tuple]] | None = None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Wrapper function for pd.read_parquet. Can only be used
+to read DataFrames from parquet files
+unlike the pd version. Asserts the DF to the
+LogFrame schema and attaches metadata to the DataFrame
+which is required by downstream functions.</p>
+<p>Args:
+path : str, path object or file-like object
+String, path object (implementing <code>os.PathLike[str]</code>),
+or file-like
+object implementing a binary <code>read()</code> function.
+The string could be a URL. Valid URL schemes include http, ftp, s3,
+gs, and file. For file URLs, a host is expected.
+A local file could be:
+<code>file://localhost/path/to/table.parquet</code>.
+A file URL can also be a path to a directory that contains multiple
+partitioned parquet files. Both pyarrow and fastparquet support
+paths to directories as well as file URLs.
+A directory path could be:
+<code>file://localhost/path/to/tables</code> or
+<code>s3://bucket/partition_dir</code>.
+engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+Parquet library to use. If 'auto', then the option
+<code>io.parquet.engine</code> is used. The default <code>io.parquet.engine</code>
+behavior is to try 'pyarrow', falling back to 'fastparquet' if
+'pyarrow' is unavailable.</p>
+<pre><code>When using the ``'pyarrow'`` engine and                 no storage options are provided
+and a filesystem is implemented by                 both &lt;code&gt;pyarrow.fs&lt;/code&gt; and &lt;code&gt;fsspec&lt;/code&gt;
+(e.g. "s3://"), then the &lt;code&gt;pyarrow.fs&lt;/code&gt;                 filesystem is attempted first.
+Use the filesystem keyword with an instantiated fsspec filesystem
+if you wish to use its implementation.
+</code></pre>
+<p storage_options>columns : list, default=None
+If not None, only these columns will be read from the file.</p>
+<pre><code>!!! versionadded "Added in version:&amp;ensp;1.3.0"
+</code></pre>
+<p>use_nullable_dtypes : bool, default False
+If True, use dtypes that use <code>pd.NA</code> as missing value indicator
+for the resulting DataFrame. (only applicable for the <code>pyarrow</code>
+engine)
+As new dtypes are added that support <code>pd.NA</code> in the future, the
+output with this option will change to use those dtypes.
+Note: this is an experimental option, and behaviour
+(e.g. additional
+support dtypes) may change without notice.</p>
+<pre><code>!!! deprecated "Deprecated since version:&amp;ensp;2.0"
+</code></pre>
+<p>dtype_backend : {{'numpy_nullable', 'pyarrow'}},
+default 'numpy_nullable'
+Back-end data type applied to the resultant :class:<code>DataFrame</code>
+(still experimental). Behaviour is as follows:</p>
+<pre><code>* ``"numpy_nullable"``: returns nullable-dtype-backed                 :class:&lt;code&gt;DataFrame&lt;/code&gt;
+(default).
+* ``"pyarrow"``: returns pyarrow-backed nullable                 :class:&lt;code&gt;ArrowDtype&lt;/code&gt;
+DataFrame.
+
+!!! versionadded "Added in version:&amp;ensp;2.0"
+</code></pre>
+<p>filesystem : fsspec or pyarrow filesystem, default None
+Filesystem object to use when reading the parquet file.
+Only implemented
+for <code>engine="pyarrow"</code>.</p>
+<pre><code>!!! versionadded "Added in version:&amp;ensp;2.1.0"
+</code></pre>
+<p>filters : List[Tuple] or List[List[Tuple]], default None
+To filter out data.
+Filter syntax: [[(column, op, val), &hellip;],&hellip;]
+where op is [==, =, &gt;, &gt;=, &lt;, &lt;=, !=, in, not in]
+The innermost tuples are transposed into a set of filters applied
+through an <code>AND</code> operation.
+The outer list combines these sets of filters through an <code>OR</code>
+operation.
+A single list of tuples can also be used, meaning that no <code>OR</code>
+operation between set of filters is to be conducted.</p>
+<pre><code>Using this argument will NOT result in row-wise filtering                 of the final
+partitions unless ``engine="pyarrow"`` is also specified.  For
+other engines, filtering is only performed at the partition                 level, that is,
+to prevent the loading of some row-groups and/or files.
+
+!!! versionadded "Added in version:&amp;ensp;2.1.0"
+</code></pre>
+<p>schema_map (): Place holder, currently not used.</p>
+<p>**kwargs
+Any additional kwargs are passed to the engine.</p>
+<h2 id="returns">Returns</h2>
+<p>pd.DataFrame</p></div>
+</dd>
+<dt id="tandv.track.common.read_pickle"><code class="name flex">
+<span>def <span class="ident">read_pickle</span></span>(<span>filepath_or_buffer: Union[str, ForwardRef('PathLike[str]'), pandas._typing.ReadPickleBuffer], from_wandb: bool = False, schema_map: Any = None, compression: Union[Literal['infer', 'gzip', 'bz2', 'zip', 'xz', 'zstd', 'tar'], dict[str, Any], ForwardRef(None)] = 'infer', storage_options: Optional[dict[str, typing.Any]] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Wrapper function for pd.read_pickle. Can only be
+used to read DataFrames from pickle files
+unlike the pd version. Asserts the DF to the
+LogFrame schema and attaches metadata to the DataFrame
+which is required by downstream functions.</p>
+<p>Args:
+filepath_or_buffer (pd.FilePath | ReadPickleBuffer |
+WandbArtefactFullName): String, path object (implementing
+os.PathLike[str]) , or file-like object implementing a
+binary readlines()
+function. Also accepts URL. URL is not limited to S3 and GCS
+from_wandb (bool): Retrieve the logframe artifact(s) from wandb
+(filepath_or_buffer is where you put the WandB artifact fullname)
+schema_map (): Place holder, currently not used.
+compression (pd.CompressionOptions)
+storage_options ()</p>
+<h2 id="returns">Returns</h2>
+<p>pd.DataFrame</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="tandv.track.common.LogFrame"><code class="flex name class">
+<span>class <span class="ident">LogFrame</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>table_schema: {
+# metadata which describes the logged tensor
+'metadata' : {
+'name' : str # name of the layer
+'layer_type' : str # type of layer
+'tensor_type' : str|TensorType # type of tensor stats are for
+'it' : int # training iteration
+'dtype' : DType # piggy back of some library for this
+'dim' : Tuple[int] # Tensor Dimensions
+},
+# single value summaries of the tensor - what they are
+# named is irrelevant (can be user provided)
+# e.g. mean,std,mean_abs,rm2,ofc,ufc,&hellip;
+# ofc (over flow count), ufc (underflow count)
+'scalar_stats : {
+* : int | float
+}
+# what other special numbers??
+'exponent_counts: {
+-inf: int
++inf: int
+* : int
+}
+}</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class LogFrame:
+    # Need to attach additional metadata that is per iteration (i.e. train/val
+    # loss, scheduled lr, etc..)
+    # Also model / mp config
+
+    &#34;&#34;&#34;
+    table_schema: {
+        # metadata which describes the logged tensor
+        &#39;metadata&#39; : {
+            &#39;name&#39; : str # name of the layer
+            &#39;layer_type&#39; : str # type of layer
+            &#39;tensor_type&#39; : str|TensorType # type of tensor stats are for
+            &#39;it&#39; : int # training iteration
+            &#39;dtype&#39; : DType # piggy back of some library for this
+            &#39;dim&#39; : Tuple[int] # Tensor Dimensions
+        },
+        # single value summaries of the tensor - what they are
+        # named is irrelevant (can be user provided)
+        # e.g. mean,std,mean_abs,rm2,ofc,ufc,...
+        # ofc (over flow count), ufc (underflow count)
+        &#39;scalar_stats : {
+            * : int | float
+        }
+        # what other special numbers??
+        &#39;exponent_counts: {
+            -inf: int
+            +inf: int
+            * : int
+        }
+    }
+    &#34;&#34;&#34;
+    _toplevels = (&#34;metadata&#34;, &#34;scalar_stats&#34;, &#34;exponent_counts&#34;)
+    # Use Optional for a column whether the column is optional?
+    schema: Dict[str, Dict[Any, Any]] = {
+        _toplevels[0]: {
+            &#34;name&#34;: str,
+            &#34;type&#34;: str,
+            &#34;tensor_type&#34;: Union[str, TT],
+            &#34;step&#34;: int,
+            &#34;dtype&#34;: str,
+            # &#39;dim&#39; : Any
+        },
+        _toplevels[1]: {WCAL1: Union[int, float]},
+        _toplevels[2]: {float(&#34;-inf&#34;): int, float(&#34;inf&#34;): int, WCAL1: int},
+    }
+
+    @staticmethod
+    def get_flat_schema():
+        flat_schema, wilcards = {}, {}
+        for k, v in LogFrame.schema.items():
+            if type(v) is dict:
+                for k_, v_ in v.items():
+                    # slightly hacky as this doesn&#39;t differentiate between \
+                    # classes and variables (that aren&#39;t subclasses of
+                    # \WildCard)
+                    if inspect.isclass(k_) and issubclass(k_, WildCard):
+                        # could make this dict into a class?
+                        wilcards[(k, k_)] = WildCardTracker(dtype=v_)
+                    else:
+                        flat_schema[(k, k_)] = v_
+
+        return flat_schema, wilcards</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="tandv.track.common.LogFrame.schema"><code class="name">var <span class="ident">schema</span> : Dict[str, Dict[Any, Any]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="tandv.track.common.LogFrame.get_flat_schema"><code class="name flex">
+<span>def <span class="ident">get_flat_schema</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="tandv.track.common.TrainingStats"><code class="flex name class">
+<span>class <span class="ident">TrainingStats</span></span>
+<span>(</span><span>steps: List[int], train_loss: List[float], val_loss: Optional[List[float]] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Dataclass for passing training statistics into interaction
+visualisations</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>steps</code></strong> :&ensp;<code>List[int]</code></dt>
+<dd>List of Training Steps</dd>
+<dt>train_loss (List[float]) : List of training loss values</dt>
+<dt><strong><code>val_loss</code></strong> :&ensp;<code>List[Float] | None</code></dt>
+<dd>List of validation loss values</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class TrainingStats:
+    steps: List[int]
+    train_loss: List[float]
+    val_loss: Optional[List[float]] = None</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="tandv.track.common.TrainingStats.steps"><code class="name">var <span class="ident">steps</span> : List[int]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.common.TrainingStats.train_loss"><code class="name">var <span class="ident">train_loss</span> : List[float]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="tandv.track.common.TrainingStats.val_loss"><code class="name">var <span class="ident">val_loss</span> : Optional[List[float]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="tandv.track" href="../index.html">tandv.track</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="tandv.track.common.wandb_int" href="wandb_int.html">tandv.track.common.wandb_int</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="tandv.track.common.read_csv" href="#tandv.track.common.read_csv">read_csv</a></code></li>
+<li><code><a title="tandv.track.common.read_parquet" href="#tandv.track.common.read_parquet">read_parquet</a></code></li>
+<li><code><a title="tandv.track.common.read_pickle" href="#tandv.track.common.read_pickle">read_pickle</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="tandv.track.common.LogFrame" href="#tandv.track.common.LogFrame">LogFrame</a></code></h4>
+<ul class="">
+<li><code><a title="tandv.track.common.LogFrame.get_flat_schema" href="#tandv.track.common.LogFrame.get_flat_schema">get_flat_schema</a></code></li>
+<li><code><a title="tandv.track.common.LogFrame.schema" href="#tandv.track.common.LogFrame.schema">schema</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tandv.track.common.TrainingStats" href="#tandv.track.common.TrainingStats">TrainingStats</a></code></h4>
+<ul class="">
+<li><code><a title="tandv.track.common.TrainingStats.steps" href="#tandv.track.common.TrainingStats.steps">steps</a></code></li>
+<li><code><a title="tandv.track.common.TrainingStats.train_loss" href="#tandv.track.common.TrainingStats.train_loss">train_loss</a></code></li>
+<li><code><a title="tandv.track.common.TrainingStats.val_loss" href="#tandv.track.common.TrainingStats.val_loss">val_loss</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.1</a>.</p>
+</footer>
+</body>
+</html>

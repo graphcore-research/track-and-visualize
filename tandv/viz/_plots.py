@@ -800,6 +800,7 @@ def exp_hist(
                 step.
 
     Always uses log2 for x-axis.
+
     One of tt or layer_name must be a single value.
 
     Args:
@@ -813,7 +814,7 @@ def exp_hist(
          kind: (Literal['bar','line','kde']): Typle of plot to display accepts\
             args "bar", "line" or "kde", kde is a resampled kde (from the \
                 exponent counts histogram)
-         dtype_annotation (Union[bool, str, List[str]]):
+         dtype_annotation (Union[bool, str, List[str]]): \
             False: No Annotations
             True: will draw numerical format annotations for the dtype logged \
                 as metadata
@@ -821,14 +822,14 @@ def exp_hist(
                 `'float8_e4m3fn'`
             List[str]: provide a list of strings of the dtypes you wish to \
                 annotate, e.g. `['float8_e4m3fn', 'float8_e5m2]`
-         dtype_info (Tuple[bool,bool,bool]):
+         dtype_info (Tuple[bool,bool,bool]): \
             Which dtype info to annotate (Max Representable Value, Smallest \
                 Normal, Smallest Subnormal), defaults to MRV & SN
          col_wrap (int | None): if faceting on tt or scalar metric set max-col\
             width before wrapping
-         figsize (Tuple[int,int]): size of the figure
-         xtick_labelsize (int) : size of x-axis tick labels
-         xtick_rotation (int) : rotation of x-axis tick labels
+         figsize (Tuple[int,int]): size of the figure \
+         xtick_labelsize (int) : size of x-axis tick labels \
+         xtick_rotation (int) : rotation of x-axis tick labels \
          fig_title (str): Custom title of the figure, on faceted plots this \
             equates to the overall figure title as sub plot titles are \
                 autopopulated.
@@ -839,16 +840,12 @@ def exp_hist(
                               for resampling from histogram.
          legend_kws (Dict): **kwargs for `FacetGrid.add_legend` (if faceting) \
             or `plt.legend` if not
-         **kwargs: tbd
-
-         One of tt or scalar_metric must be a single value.
+         **kwargs: tbd \
 
 
      Returns:
          Figure
 
-
-    TO-DO, facet on step (), col == step, (row == tt or layer)
 
     """
 

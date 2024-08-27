@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import optax
 from flax import linen as nn
 from jax import tree_util
-from ..track import read_pickle
+from ..track.common import read_pickle
 from ..track.jax import track
 
 INDIM = 2**8

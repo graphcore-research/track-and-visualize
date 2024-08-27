@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.1">
+<title>tandv.viz API documentation</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>tandv.viz</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="tandv.viz.exp_hist"><code class="name flex">
+<span>def <span class="ident">exp_hist</span></span>(<span>df: pandas.core.frame.DataFrame, layer: Union[str, List[str], Pattern], tt: Union[Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State\\.[a-zA-Z_\\-]+', 'Weight_Gradients'], List[Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State\\.[a-zA-Z_\\-]+', 'Weight_Gradients']], str, List[str], ForwardRef(None)], step: int, kind: Literal['bar', 'line', 'kde'] = 'bar', dtype_annotation: Union[bool, str, List[str]] = True, dtype_info: Tuple[bool, bool, bool] = (True, True, True), col_wrap: int | None = None, figsize: Tuple[int, int] = (8, 6), xtick_labelsize: int = 12, xtick_rotation: int = 45, fig_title: Optional[str] = None, facet_kws: Optional[Dict] = None, sp_kws: Optional[Dict] = None, legend_kws: Optional[Dict] = None) ‑> matplotlib.figure.Figure</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Bar Plot, Line Plot or resampled kde plot (based on resampling from
+histogram) of a Tensor type or (types: facted plot) of a single
+layer or (set of layers: facted plot), for a single training
+step.</p>
+<p>Always uses log2 for x-axis.</p>
+<p>One of tt or layer_name must be a single value.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>df</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
+<dd>the logs for the entire training run</dd>
+<dt><strong><code>layer</code></strong> :&ensp;<code>str | List[str] | Pattern</code></dt>
+<dd>a str (single layer), set of str
+or a compiled regex of a set of names to plot (each layer is a
+facet)</dd>
+<dt><strong><code>tt</code></strong> :&ensp;<code>TensorType | List[TensorType] | None</code></dt>
+<dd>the type of tensor for
+the view to include (if None plots a facet of all tensor types)</dd>
+<dt><strong><code>step</code></strong> :&ensp;<code>int</code></dt>
+<dd>the training step you wish to plot</dd>
+<dt><strong><code>kind</code></strong></dt>
+<dd>(Literal['bar','line','kde']): Typle of plot to display accepts
+args "bar", "line" or "kde", kde is a resampled kde (from the
+exponent counts histogram)</dd>
+<dt><strong><code>dtype_annotation</code></strong> :&ensp;<code>Union[bool, str, List[str]]</code></dt>
+<dd>
+<pre><code>    False: No Annotations
+</code></pre>
+<p>True: will draw numerical format annotations for the dtype logged
+as metadata
+str: provide the string of that dtype you wish to annotate e.g.
+<code>'float8_e4m3fn'</code>
+List[str]: provide a list of strings of the dtypes you wish to
+annotate, e.g. <code>['float8_e4m3fn', 'float8_e5m2]</code></p>
+</dd>
+<dt><strong><code>dtype_info</code></strong> :&ensp;<code>Tuple[bool,bool,bool]</code></dt>
+<dd>
+<pre><code>    Which dtype info to annotate (Max Representable Value, Smallest                 Normal, Smallest Subnormal), defaults to MRV &amp; SN
+</code></pre>
+</dd>
+<dt><strong><code>col_wrap</code></strong> :&ensp;<code>int | None</code></dt>
+<dd>if faceting on tt or scalar metric set max-col
+width before wrapping</dd>
+<dt><strong><code>figsize</code></strong> :&ensp;<code>Tuple[int,int]</code></dt>
+<dd>size of the figure
+xtick_labelsize (int) : size of x-axis tick labels
+xtick_rotation (int) : rotation of x-axis tick labels
+fig_title (str): Custom title of the figure, on faceted plots this
+equates to the overall figure title as sub plot titles are
+autopopulated.</dd>
+<dt><strong><code>facet_kws</code></strong> :&ensp;<code>Dict</code></dt>
+<dd>Arguments for <code>sns.FacetGrad</code></dd>
+<dt><strong><code>sp_kws</code></strong> :&ensp;<code>Dict</code></dt>
+<dd>**kwargs for <code>plt.plot</code>, <code>plt.bar</code> or <code>sns.kdeplot</code>
+(depending on value chosen for 'kind')
+in the case of sns.kdeplot n=int (&gt; 10000) is required
+for resampling from histogram.</dd>
+<dt><strong><code>legend_kws</code></strong> :&ensp;<code>Dict</code></dt>
+<dd>**kwargs for <code>FacetGrid.add_legend</code> (if faceting)
+or <code>plt.legend</code> if not</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>tbd </dd>
+</dl>
+<p>Returns:
+Figure</p></div>
+</dd>
+<dt id="tandv.viz.interactive"><code class="name flex">
+<span>def <span class="ident">interactive</span></span>(<span>f: Callable, train_stats: Union[Dict, tandv.track.common._types.TrainingStats, ForwardRef(None)] = None, width: int = 1500, mouse_sensitivity: int = 10000, **kwargs) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function makes the visualisation interactive
+in a jupyter notebook.</p>
+<p>Args:
+f (Callable) : The plotting function you wish to make interactive
+train_stats (Dict | TrainingStats | None ) = None: If you wish to
+cross reference your training statistics with the numerics stats
+pass it in and the interactive plot will display a line plot with the
+training stats to the left of the numerics visualisation.
+width (float) : The value in pixels for how wide you wish the
+visualisation to be.
+mouse_sensitivity (int) : Only required if train_stats is passed in.
+If you find the cross hairs lagging increase the value,
+it reduces the
+frequency with which redraws triggered and therefore reducing lag at
+the expense of transition smoothness.
+kwargs: The arguments for provided vis function <code>f</code></p>
+<p>Returns:
+None</p></div>
+</dd>
+<dt id="tandv.viz.scalar_global_heatmap"><code class="name flex">
+<span>def <span class="ident">scalar_global_heatmap</span></span>(<span>df: pandas.core.frame.DataFrame, tt: Union[Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State\\.[a-zA-Z_\\-]+', 'Weight_Gradients'], str, ForwardRef(None)], scalar_metric: str, inc: int = 1, x=('metadata', 'step'), y=('metadata', 'name'), figsize: Tuple[float, float] = (8, 6), col_wrap: int | None = None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plots a global view a single tensor type or a facet
+across multiple tensor
+types with respect to some scalar metrics.
+If tt = TensorType then a single figure plot. (to do: implement for tt =
+None or List[TensorType] it returns a faceted plot, )</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>df</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
+<dd>the logs for the entire training run</dd>
+<dt><strong><code>tt</code></strong> :&ensp;<code>TensorType | List[TensorType] | None</code></dt>
+<dd>
+<pre><code>    the type of tensor for the             view to include (if None plots a facet of all tensor types)
+</code></pre>
+</dd>
+<dt><strong><code>inc</code></strong> :&ensp;<code>int</code></dt>
+<dd>the increment between training iterations to include</dd>
+<dt><strong><code>scalar_metric</code></strong> :&ensp;<code>str | List[str]</code></dt>
+<dd>which scalar metric to plot</dd>
+<dt>x : what to plot on x-axis</dt>
+<dt>y : what to plot on y-axis</dt>
+<dt><strong><code>col_wrap</code></strong></dt>
+<dd>if faceting on tt or scalar metric set max-col
+width before wrapping</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>all kwargs from sns.heatmap</dd>
+</dl>
+<p>One of tt or scalar_metric must be a single value.
+Returns:
+Figure</p></div>
+</dd>
+<dt id="tandv.viz.scalar_line"><code class="name flex">
+<span>def <span class="ident">scalar_line</span></span>(<span>df: pandas.core.frame.DataFrame, layer: Union[str, List[str], Pattern], tt: Union[Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State\\.[a-zA-Z_\\-]+', 'Weight_Gradients'], List[Literal['Activation', 'Gradient', 'Weights', 'Optimiser_State\\.[a-zA-Z_\\-]+', 'Weight_Gradients']], str, List[str], ForwardRef(None)], scalar_metric: Union[str, List[str]], x=('metadata', 'step'), col_wrap: int | None = None, kind='line', figsize: Tuple[float, float] = (8, 6), facet_kws: Optional[Dict[Any, Any]] = None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot a line for a scalar metric or metric(s) for a Tensor type or
+(types: facted plot) of a single layer or set of layer(s).</p>
+<p>One of tt or layer_name must be a single value.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>df</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
+<dd>the logs for the entire training run</dd>
+<dt><strong><code>layer</code></strong> :&ensp;<code>str | List[str] | Pattern</code></dt>
+<dd>a str (single layer), set of
+str or a compiled regex of a set of names to plot (each layer
+is a facet)</dd>
+<dt><strong><code>tt</code></strong> :&ensp;<code>TensorType | List[TensorType] | None</code></dt>
+<dd>the type of tensor for
+the view to include (if None plots a facet of all tensor types)</dd>
+<dt><strong><code>scalar_metric</code></strong> :&ensp;<code>str | List[str]</code></dt>
+<dd>which scalar metric or metrics to
+plot</dd>
+<dt>x : what to plot on x-axis (defaults to training step)</dt>
+<dt><strong><code>col_wrap</code></strong> :&ensp;<code>int | None</code></dt>
+<dd>if faceting on tt or scalar metric set
+max-col width before wrapping</dd>
+<dt><strong><code>kind</code></strong></dt>
+<dd>(str): Typle of plot to display accepts args "line" or "scatter"</dd>
+<dt><strong><code>facet_kws</code></strong> :&ensp;<code>Dict</code></dt>
+<dd>Arguements for sns.FacetGrad, if faceting on
+TensorType,
+sharey is automatically set to False
+(as grads and activations typically on very different scales)</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>all kwargs from <code>sns.relplot</code> (if faceting) or
+<code>sns.lineplot</code> (if not faceting &amp; kind='line')
+| <code>sns.scatterplot</code> (if not faceting &amp; kind='scatter')</dd>
+</dl>
+<p>One of tt or scalar_metric must be a single value.
+Returns:
+Figure</p></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="tandv" href="../index.html">tandv</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="tandv.viz.exp_hist" href="#tandv.viz.exp_hist">exp_hist</a></code></li>
+<li><code><a title="tandv.viz.interactive" href="#tandv.viz.interactive">interactive</a></code></li>
+<li><code><a title="tandv.viz.scalar_global_heatmap" href="#tandv.viz.scalar_global_heatmap">scalar_global_heatmap</a></code></li>
+<li><code><a title="tandv.viz.scalar_line" href="#tandv.viz.scalar_line">scalar_line</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.1</a>.</p>
+</footer>
+</body>
+</html>
