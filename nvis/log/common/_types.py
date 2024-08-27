@@ -165,7 +165,7 @@ class Stash:
     name: str
     type: ModuleType # or flax module equivalent?
     tensor_type: TT
-    dtype: torch.dtype # torch dtype, ml dtypes or jax..?
+    dtype: DType # torch dtype, ml dtypes or jax..?
     value: Any  # output(s) or grad_output(s)
 
     @property
