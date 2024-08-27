@@ -2,6 +2,8 @@ from typing import Callable, Literal, NewType, Optional, Dict, Any, Tuple, Type,
 from dataclasses import dataclass
 import inspect
 from typing import List,Optional
+
+import numpy as np
 from ... import _config
 
 if _config._TORCH_EXTRA and not _config._JAX_EXTRA:
@@ -9,11 +11,14 @@ if _config._TORCH_EXTRA and not _config._JAX_EXTRA:
     from torch import nn
 
     ModuleType = NewType('ModuleType',Union[Type[nn.Module],str,None])
+    DType = NewType('DType',Union[torch.dtype,str])
+    
 
 elif not _config._TORCH_EXTRA and _config._JAX_EXTRA:
 
     import flax.linen as lnn
     ModuleType = NewType('ModuleType',Union[Type[lnn.Module],str,None])
+    DType = NewType('DType',Union[np.dtype,str])
 
 elif _config._TORCH_EXTRA and _config._JAX_EXTRA:
     import torch
@@ -21,9 +26,11 @@ elif _config._TORCH_EXTRA and _config._JAX_EXTRA:
     import flax.linen as lnn
 
     ModuleType = NewType('ModuleType',Union[Type[nn.Module],Type[lnn.Module],str,None])
+    DType = NewType('DType',Union[torch.dtype, np.dtype,str])
 
 else:
-    ...
+    ModuleType = NewType('ModuleType',Union[str,None])
+    DType = NewType('DType',Union[str])
 
 
 """
