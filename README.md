@@ -4,16 +4,65 @@
 
 Repo for working on numerics-vis
 
-### Installation
+## Installation
 ```
-pip install git+https://github.com/graphcore-research/numerics-vis.git@interactive-exploration
+pip install git+https://github.com/graphcore-research/numerics-vis.git
 ```
 
 
-### Usage
+## Usage
+
+### Track
+#### torch
+Example of the use `tandv.track` in a `torch` training loop.
+```python
+from tandv.track.torch import track
+
+# context manager outside the training loop
+with track(module=model,...) as tracker:
+    for i in range(max_its):
+        # regular training loop
+        ...
+        loss.backward()
+        optimizer.step()
+        # always call tracker.step() after the optimizer update step
+        tracker.step()
+```
+
+
+#### jax (flax)
+Example of the use `tandv.track` in a `jax/flax` training loop.
+```python
+from tandv.track.jax import track
+
+model = ...
+
+def loss_fn(params, x, y):
+  y_pred = model.apply(params, x)
+  return jnp.mean((y_pred - y) ** 2)
+
+
+def update(model_state,opt_state,optimizer, x, y):
+  grads = jax.grad(loss_fn)(model_state,x,y)
+  updates, opt_state = optimizer.update(grads, opt_state, model_state)
+  model_state = optax.apply_updates(model_state, updates)
+
+  return model_state,opt_state,grads
+
+with track(model_state=model_state,optimizer_state=opt_state,...) as tracker:
+    for i in range(max_its):
+
+        # pass update fn followed by its args into tracker.intercept higher order function.
+        model_state,opt_state,grads = tracker.intercept(update,model_state,opt_state,optimizer,x,y)
+        tracker.step(model_state,opt_state,...) # args depend on what is being tracked
+```
+
+
+### Viz
+#### Static Vizualisation
 ```python
 # Imports
-from nvis import vis
+from nvis import viz
 from nvis.log.common import read_pickle
 
 # load data
@@ -30,7 +79,7 @@ fig = vis.exp_hist(
 
 ```
 
-#### Interactive
+#### Interactive Vizualisation
 Interactive versions of each plot can be achieved by passing the vis function and the relevent kwargs to the interactive function.
 
 ```python
@@ -73,11 +122,15 @@ vis.interactive(
 ![Exponent Histogram](/assets/exponent_hist.gif)
 
 
-## Required Log Schema
+#### Cross Referencing with Training Stats
+...
+
+
+### Required Log Schema
 
 In order to visualise the data in a useful way and simplify the API design some assurances about the structure of the data are needed. Therefore the library enforces a Schema. The logging data must be in the form of a `pandas.MultiIndex`, with three top level indexes, **metadata**, **scalar_stats** and **exponent_counts**.
 
-### Metadata
+#### Metadata
 The `"metadata"` top-level contains the non-data dependent information about the tensor.
 
 | Column Name | Tuple (for Pandas) | Description | Type |
@@ -90,13 +143,13 @@ The `"metadata"` top-level contains the non-data dependent information about the
 
 **\*** We currently don't have any functionally which depends on the module type. It is required by the schema, but if you're not logging that data, the column can be filled with empty strings.
 
-### Scalar Stats
+#### Scalar Stats
 The `"scalar_stats"` top-level contains all the scalar statistics logged to summarise the data contained with-in the tensors.
 | Column Name | Tuple (for Pandas) | Description | Type |
 | -------- | ------- | ------- | ------- |
 |`+`| `("scalar_stats,*)`| There is no restriction on what scalar statistics about the tensor that can be visualised. The schema only enforces there this at-least 1 column which this criteria. The `*` can be substituted for any string you wish to use (e.g. `"std"`). | `Union[float,int]`|
 
-### Exponent Counts
+#### Exponent Counts
 These columns store the histogram counts for each exponent in the number format. For example, Column `n` ${n}$ would contain the quanity of values that fall in the range ${2^n}$ to ${2^{n+1}}$.
 
 | Column Name | Tuple (for Pandas) | Description | Type |
@@ -108,7 +161,7 @@ These columns store the histogram counts for each exponent in the number format.
 Currently `+inf` & `-inf` are required. However this will likely change to optional as hardware will clamp overflows to the MRV or 0 (in the case of underflows). The work -around if you're not producing infinites in your logs is to simply add the infinity columns with each entry as zero.
 
 
-## Feedback
+### Feedback
 Any feedback for the tool would be greatly appreciated.
 
 If providing feedback on the tool could you please provide it in the format below.
@@ -158,3 +211,15 @@ output.enable_custom_widget_manager()
 ```
 
 before executing any `nvis` functions.  
+
+
+### Developers Install
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt  # vis only
+# pip install -r requirements-jax.txt # jax tracking
+# pip install -r requirements-torch.txt # torch tracking
+# pip install wandb # not included in requirements files.
+
+```

@@ -10,3 +10,5 @@ build/
 torch_compile_debug
 local-explorations
 wandb
+profiling-logging-overhead
+*.egg-info
