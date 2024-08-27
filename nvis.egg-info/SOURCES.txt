@@ -2,6 +2,7 @@ README.md
 setup.cfg
 setup.py
 nvis/__init__.py
+nvis/_config.py
 nvis.egg-info/PKG-INFO
 nvis.egg-info/SOURCES.txt
 nvis.egg-info/dependency_links.txt
@@ -15,11 +16,18 @@ nvis/log/common/_read.py
 nvis/log/common/_types.py
 nvis/log/common/_utils.py
 nvis/log/jax/__init__.py
+nvis/log/jax/_utils.py
+nvis/log/jax/core.py
+nvis/log/jax/stash_values.py
 nvis/log/torch/__init__.py
 nvis/log/torch/core.py
+nvis/log/torch/stash_values.py
 nvis/vis/__init__.py
+nvis/vis/_crosshair.py
 nvis/vis/_errors.py
 nvis/vis/_facet.py
 nvis/vis/_interact.py
 nvis/vis/_plots.py
+nvis/vis/_toolbars.py
 nvis/vis/_transform.py
+nvis/vis/_widget_holder.py
