@@ -7,7 +7,6 @@ from typing import Dict, Callable, List, Union
 import matplotlib.axes
 import matplotlib.figure
 import pandas as pd
-from torch import NoneType
 import matplotlib
 from functools import partial
 
