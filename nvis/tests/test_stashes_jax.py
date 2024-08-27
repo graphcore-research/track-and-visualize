@@ -6,7 +6,6 @@ import jax
 from jax import tree_util
 import jax.numpy as jnp
 import optax
-from functools import partial
 from ..log.jax import track
 from .._config import _libname
 from ..log import read_pickle
