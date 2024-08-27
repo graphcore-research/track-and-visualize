@@ -4,6 +4,7 @@ from ... import _config
 if _config._TORCH_EXTRA:
     import torch
 
+
 def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,List]:
     """
     Gets the exponent histogram for the tensor, any thing over/under max_exp/min_exp will be set to +/-inf
