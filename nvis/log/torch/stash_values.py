@@ -1,5 +1,8 @@
 from typing import Dict, List, Union
-import torch
+from ... import _config
+
+if _config._TORCH_EXTRA:
+    import torch
 
 def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str,List]:
     """
