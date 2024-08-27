@@ -1,15 +1,13 @@
-from typing import Any, Callable, Hashable, Iterable, Literal, Mapping, Sequence
+from typing import Any
 from pandas._libs import lib
-
 import pandas as _pd
 from pandas._typing import (
     CompressionOptions, ReadPickleBuffer, FilePath, StorageOptions, 
     ReadBuffer, DtypeBackend,IndexLabel, UsecolsArgType, ReadCsvBuffer, 
     DtypeArg, CSVEngine)
-from typing import TypeVar
 from ._utils import _validate_schema, _dataframe_migration
 from .wandb_int import download_wandb_artifact
-
+from ... import _config
 WandbArtifactFullName = str
 
 
@@ -37,6 +35,11 @@ def read_pickle(
 
     if from_wandb:
         assert type(filepath_or_buffer) == str, f'When pulling an artifact from wandb, filepath_or_buffer must be a str, not {type(filepath_or_buffer)}'
+        
+        if not _config._WANDB_EXTRA:
+            raise ImportError(f'if `from_wandb` == True, wandb must be installed, please install via `pip install wandb` or `pip install {_config._libname}[wandb]')
+        
+        
         df = download_wandb_artifact(artifact_fullname=filepath_or_buffer)
 
 

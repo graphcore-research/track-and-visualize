@@ -2,13 +2,15 @@ from typing import Dict, List, Union
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.experimental import host_callback as hcb
+
 
 def _concretize_as_list(value: Dict[str,jax.Array]) -> Dict[str, List]:
-    return {k:jax.device_get(v).tolist() for k,v in value.items()}
+    value = jax.device_get(value)
+    return {k:v.tolist() for k,v in value.items()}
 
 def _concretize_as_scalar(value: Dict[str,jax.Array]) -> Dict[str, Union[int,float]]:
-    return {k:jax.device_get(v).item() for k,v in value.items()}
+    value = jax.device_get(value)
+    return {k:v.item() for k,v in value.items()}
 
 
 def exp_histogram(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[str,jax.Array]:

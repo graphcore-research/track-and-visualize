@@ -1,9 +1,5 @@
-from typing import Any, Callable, Dict, Sequence
 from functools import partial
 import jax
-from optax._src.transform import NamedTuple
-from optax._src.base import EmptyState
-from ..common._types import Event
 
 # largely copied/apapted from https://github.com/graphcore-research/jax-scalify/blob/32f81b951176e0085fec5c88be95f113d9cb2177/jax_scalify/ops/utils.py#L8
 @partial(jax.custom_vjp, nondiff_argnums=(0,))
@@ -12,16 +8,16 @@ def forward_callback(f, *args):
     return args
 
 
-def debug_callback_fwd(f, *args):
-    f(*args)
+def callback_fwd(f, *args):
+    f(*args) # this is the equivalent of the torch _forwardhook
     return args, None
 
 
-def debug_callback_bwd(f, _, args_grad):
+def callback_bwd(f, _, args_grad):
     return args_grad
 
 
-forward_callback.defvjp(debug_callback_fwd, debug_callback_bwd)
+forward_callback.defvjp(callback_fwd, callback_bwd)
 
 
 @partial(jax.custom_vjp, nondiff_argnums=(0,))
@@ -35,7 +31,7 @@ def backward_callback_fwd(f, *args):
 
 
 def backward_callback_bwd(f, _, args_grad):
-    f(*args_grad)
+    f(*args_grad)# this is the equivalent of the torch _backward hook
     return args_grad
 
 

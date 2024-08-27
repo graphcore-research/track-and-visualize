@@ -4,10 +4,9 @@ import pandas as pd
 from pathlib import Path
 import pickle
 import time
-import msgpack
 import logging
 logger = logging.getLogger(__name__)
-import os
+
 def lf_to_pickle(name: str, step: int, object: pd.DataFrame) -> Path:
     """
         Write the intermediate logrames to disk

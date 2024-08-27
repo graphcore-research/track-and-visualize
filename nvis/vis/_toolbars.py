@@ -2,7 +2,6 @@ from typing import Dict, List, Union
 from dataclasses import dataclass
 
 import ipywidgets as widgets
-import sys
 import pandas as pd
 from ..log.common._types import TT as TensorType
 

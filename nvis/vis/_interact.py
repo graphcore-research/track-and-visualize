@@ -9,7 +9,6 @@ import matplotlib.figure
 import pandas as pd
 from requests import get
 from torch import NoneType
-import traitlets
 import matplotlib
 from functools import partial
 
@@ -23,8 +22,6 @@ from ._crosshair import SnappingCrossHair
 from IPython import display
 import matplotlib.pyplot as plt 
 import warnings
-
-import numpy as np
 
 
 

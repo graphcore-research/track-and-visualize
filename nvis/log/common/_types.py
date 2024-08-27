@@ -1,12 +1,30 @@
-from enum import Enum
-import pandas as _pd
-from typing import Callable, Literal, Optional, Dict, Any, Tuple, Type, Union, TypeVar
+from typing import Callable, Literal, NewType, Optional, Dict, Any, Tuple, Type, Union,NewType
 from dataclasses import dataclass
 import inspect
 from typing import List,Optional
+from ... import _config
 
-import torch
-from torch import nn
+if _config._TORCH_EXTRA and not _config._JAX_EXTRA:
+    import torch
+    from torch import nn
+
+    ModuleType = NewType('ModuleType',Union[Type[nn.Module],str,None])
+
+elif not _config._TORCH_EXTRA and _config._JAX_EXTRA:
+
+    import flax.linen as lnn
+    ModuleType = NewType('ModuleType',Union[Type[lnn.Module],str,None])
+
+elif _config._TORCH_EXTRA and _config._JAX_EXTRA:
+    import torch
+    from torch import nn
+    import flax.linen as lnn
+
+    ModuleType = NewType('ModuleType',Union[Type[nn.Module],Type[lnn.Module],str,None])
+
+else:
+    ...
+
 
 """
     Data Structures for logging
@@ -129,7 +147,7 @@ class LogFrame:
 @dataclass
 class Event:
     name: str
-    type: Union[Type[nn.Module],str,None]
+    type: ModuleType
     tensor_type: TT
     value: Any
     args: Tuple[Any, ...]
@@ -138,7 +156,7 @@ class Event:
 @dataclass
 class Stash:
     name: str
-    type: Union[Type[nn.Module],str,None] # or flax module equivalent?
+    type: ModuleType # or flax module equivalent?
     tensor_type: TT
     dtype: torch.dtype # torch dtype, ml dtypes or jax..?
     value: Any  # output(s) or grad_output(s)

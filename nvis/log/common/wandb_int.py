@@ -1,12 +1,12 @@
-
-# import wandb.errors
-# import wandb.sdk
 from typing import Callable, List
 from pathlib import Path
-import wandb
 import pandas as pd
 import os
-from ._log_handler import combine_incremental_dfs
+from ... import _config
+
+
+if _config._WANDB_EXTRA:
+    import wandb
 
 def download_wandb_artifact(artifact_fullname: str, pd_read_fn: Callable = pd.read_pickle) -> pd.DataFrame:
     """

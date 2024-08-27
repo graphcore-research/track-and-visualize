@@ -5,7 +5,7 @@ import typing
 from ._errors import SchemaException
 from . import _types
 from pandas.api.types import is_string_dtype, is_integer_dtype, is_float_dtype, is_dtype_equal
-import sys
+
 def _dataframe_migration(df: pd.DataFrame, schema_map: Any) -> pd.DataFrame:
     """
         Takes an arbitrary dataframe of logs and a schema-map and returns a DataFrame where values are stored under the appropriate metadata.

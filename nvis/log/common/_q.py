@@ -1,6 +1,4 @@
-from typing import Literal, Tuple
-
-
+from typing import Tuple
 
 def _exp(c: int | float) -> Tuple[str, int | float]:
     # if float check if +/- infinity

@@ -1,22 +1,23 @@
 
 import logging
 import concurrent.futures
-import os
 from pathlib import Path
 import pickle
 import traceback
 from types import TracebackType
-import wandb
 # rel imports
 from ._log_handler import combine_incremental_dfs, global_stash_to_logframe, nuke_intermediate_logframes,summarise_logframe
 from ..._config import _libname
+from ... import _config
 from ._types import StashFn,Stash,Event
 from ._write import lf_to_pickle,write_summary_bin_log
-
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union, ByteString, Tuple
 import randomname
 logger = logging.getLogger(__name__)
 import msgpack
+
+if _config._WANDB_EXTRA:
+    import wandb
 
 
 def async_wrapper(f: Callable,name: str, step: int, object: ByteString):
@@ -60,6 +61,8 @@ class BaseTracker:
         self.out_path = None
 
         if self.use_wandb:
+            if not _config._WANDB_EXTRA:
+                raise ImportError(f'if `use_wandb` == True, wandb must be installed, please install via `pip install wandb` or `pip install {_config._libname}[wandb]')
 
             self.wandb_run = wandb.run
             self._artifact = wandb.Artifact(name=self._name, type=f"{_libname}-logframe")
