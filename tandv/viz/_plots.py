@@ -27,7 +27,7 @@ from ._transform import _flatten_multi_index  # type: ignore
 
 
 def _base2_format(label, value, tick_number):
-    # logging.warning(f'L: {l}, Value: {value}, Tick_N : {tick_number}')
+    # logging.warning(f'L: {l}, Value: {value}, Ti ck_N : {tick_number}')
     # the categorical case
     if type(value) is int:
         value = label[tick_number]
@@ -142,9 +142,7 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(fp_info.maxexp)),
                     "-",
-                    f"{str(fp_info.dtype).upper()} - \
-                        Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} \
-                            (exp) | {fp_info.max} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
                 )
             )
         else:
@@ -153,9 +151,7 @@ def _annotate_nf_details(
                     (
                         fp_info.max,
                         "-",
-                        f"{str(fp_info.dtype).upper()} - \
-                            Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} \
-                                (exp) | {fp_info.max} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
                     )
                 )
             else:
@@ -170,9 +166,7 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_normal))),
                     "--",
-                    f"{str(fp_info.dtype).upper()} - Smallest Normal: \
-                        {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} \
-                        (exp) | {fp_info.smallest_normal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
                 )
             )
         else:
@@ -182,9 +176,7 @@ def _annotate_nf_details(
                     (
                         fp_info.smallest_normal,
                         "--",
-                        f"{str(fp_info.dtype).upper()} - Smallest Normal\
-                        : {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'}\
-                            (exp) | {fp_info.smallest_normal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
                     )
                 )
             else:
@@ -201,9 +193,7 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_subnormal))),
                     ":",
-                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal:\
-                    {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} \
-                            (exp) | {fp_info.smallest_subnormal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
                 )
             )
         else:
@@ -213,9 +203,7 @@ def _annotate_nf_details(
                     (
                         fp_info.smallest_subnormal,
                         ":",
-                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal:\
-                              {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'}\
-                                  (exp) | {fp_info.smallest_subnormal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
                     )
                 )
             else:
