@@ -115,6 +115,7 @@ def test_stash_tensors_cpu():
     assert torch.equal(stash_full_tensor(tn)["full_tensor"], tn)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_stash_tensors_cuda():
     tn = torch.randn((B, N, M)).to("cuda")
 

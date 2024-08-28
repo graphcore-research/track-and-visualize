@@ -3,6 +3,7 @@ import logging
 import shutil
 from pathlib import Path
 
+import pytest
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -72,6 +73,7 @@ def test_tracker_cpu():
     shutil.rmtree(p)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_tracker_cuda():
     model = SimpleModel(input_size=INDIM).to("cuda")
     loss_fn = torch.nn.BCEWithLogitsLoss()
@@ -123,6 +125,7 @@ def test_tracker_cuda():
     shutil.rmtree(p)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_tracker_torch_compile():
 
     model = SimpleModel(input_size=INDIM).to("cuda")
