@@ -39,8 +39,9 @@ class WidgetHolder:
         redraw = True
         # overwrite redraw_fn args
         for k, v in self.widgets.items():
-            if (type(v.value) is list or type(v.value) is tuple) and \
-                    len(v.value) <= 1:  # type: ignore
+            if (type(v.value) is list or type(v.value) is tuple) and len(
+                v.value
+            ) <= 1:  # type: ignore
                 # fixing bug doug identified
                 if len(v.value) == 0:  # type: ignore
                     redraw = False
@@ -65,20 +66,19 @@ class WidgetHolder:
 
     def _f(self, *args, **kwargs):
         # so it only updates on the final point (for dropdown)
-        if args[0]["name"] == "_property_lock" and type(args[0]["old"]) \
-                is not traitlets.utils.sentinel.Sentinel:  # type: ignore
+        if (
+            args[0]["name"] == "_property_lock"
+            and type(args[0]["old"]) is not traitlets.utils.sentinel.Sentinel
+        ):  # type: ignore
 
-            if isinstance(args[0]["owner"],
-                          widgets.widget_selection.Dropdown):
+            if isinstance(args[0]["owner"], widgets.widget_selection.Dropdown):
                 if "index" in args[0]["old"].keys():
                     self._redraw()
                 ...
-            if isinstance(args[0]["owner"],
-                          widgets.widget_tagsinput.TagsInput):
+            if isinstance(args[0]["owner"], widgets.widget_tagsinput.TagsInput):
                 self._redraw()
 
-            if isinstance(args[0]["owner"],
-                          widgets.widget_selection.SelectMultiple):
+            if isinstance(args[0]["owner"], widgets.widget_selection.SelectMultiple):
                 self._redraw()
         else:
             ...
@@ -101,10 +101,9 @@ class WidgetHolder:
         self.widgets[key].close()
         self.widgets.__delitem__(key)
 
-    def set_current_redraw_function(self,
-                                    f: Callable,
-                                    fig: matplotlib.figure.Figure,
-                                    **kwargs) -> None:  # type: ignore
+    def set_current_redraw_function(
+        self, f: Callable, fig: matplotlib.figure.Figure, **kwargs
+    ) -> None:  # type: ignore
         self.redraw_fn = partial(f, fig=fig)
         self.redraw_fn_args = kwargs
 

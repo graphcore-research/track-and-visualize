@@ -8,8 +8,10 @@ from .stash_values import (
     stash_scalar_stats,
 )
 
-__all__ = ["stash_hist",
-           "stash_full_tensor",
-           "stash_all_stats_and_hist",
-           "stash_scalar_stats",
-           *coreall]  # type: ignore
+__all__ = [
+    "stash_hist",
+    "stash_full_tensor",
+    "stash_all_stats_and_hist",
+    "stash_scalar_stats",
+    *coreall,
+]  # type: ignore

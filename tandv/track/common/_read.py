@@ -6,11 +6,11 @@ from pandas._libs import lib
 from pandas._typing import (
     CompressionOptions,
     DtypeBackend,
+    FilePath,
     ReadBuffer,
     ReadCsvBuffer,
     ReadPickleBuffer,
     StorageOptions,
-    FilePath
 )
 
 from ... import _config
@@ -51,7 +51,9 @@ def read_pickle(
     """
 
     if from_wandb:
-        assert (type(filepath_or_buffer) is str), f"When pulling an artifact \
+        assert (
+            type(filepath_or_buffer) is str
+        ), f"When pulling an artifact \
             from wandb, filepath_or_buffer \
             must be a str, not {type(filepath_or_buffer)}"
 

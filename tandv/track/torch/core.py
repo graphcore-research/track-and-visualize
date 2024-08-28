@@ -35,8 +35,7 @@ def rmap_tensor(value: Any, fn: Callable[[Tensor], Any]) -> Any:
     if isinstance(value, (tuple, list)):
         return type(value)(rmap_tensor(a, fn) for a in value)
     if isinstance(value, dict):
-        return {rmap_tensor(k, fn):
-                rmap_tensor(a, fn) for k, a in value.items()}
+        return {rmap_tensor(k, fn): rmap_tensor(a, fn) for k, a in value.items()}
     # if dataclasses.is_dataclass(value): TORCH COMPILE DOES NOT LIKE THIS
     #     return type(value)(**{k: rmap_tensor(v, fn) \
     # for k, v in value.__dict__.items()})
@@ -63,12 +62,13 @@ def get_stash_fn(
     stash_value: Optional[StashValueFn] = None, stash: Optional[StashFn] = None
 ) -> StashFn:
     if stash_value and stash:
-        raise ValueError("Cannot provide StashValueFn and \
-                         StashFn to get_stash_fn()")
+        raise ValueError(
+            "Cannot provide StashValueFn and \
+                         StashFn to get_stash_fn()"
+        )
     if stash:
         return stash
-    return partial(default_stash, stash_value=stash_value or
-                   stash_all_stats_and_hist)
+    return partial(default_stash, stash_value=stash_value or stash_all_stats_and_hist)
 
 
 class TorchTracker(BaseTracker):
@@ -84,8 +84,7 @@ class TorchTracker(BaseTracker):
         init_step: int | None = None,
     ):
         super().__init__(
-            stash, name, init_step, async_offload,
-            offload_inc, offload_fn, use_wandb
+            stash, name, init_step, async_offload, offload_inc, offload_fn, use_wandb
         )
         self._handles: List[torch.utils.hooks.RemovableHandle] = []
         self._model: Union[torch.nn.Module, None] = None
@@ -102,10 +101,7 @@ class TorchTracker(BaseTracker):
         super().__exit__(exc_type, exc, traceback)
 
     # REGISTERING ENTITIES TO BE TRACKED
-    def register(self,
-                 module: nn.Module,
-                 name: str = "",
-                 grad: bool = True) -> None:
+    def register(self, module: nn.Module, name: str = "", grad: bool = True) -> None:
         self._handles.append(
             module.register_forward_hook(
                 partial(
@@ -126,9 +122,9 @@ class TorchTracker(BaseTracker):
                 )
             )
 
-    def register_optimiser(self,
-                           optimizer: torch.optim.Optimizer,
-                           param_names: List[str]) -> None:  # type: ignore
+    def register_optimiser(
+        self, optimizer: torch.optim.Optimizer, param_names: List[str]
+    ) -> None:  # type: ignore
         self._handles.append(
             optimizer.register_step_pre_hook(
                 partial(self._optim_step_hook, p_names=param_names)
@@ -172,8 +168,7 @@ class TorchTracker(BaseTracker):
         name: str,
     ) -> None:
         # only do stashes when training?
-        self.stash_event(Event(name, str(type(module)),
-                               "Activation", output, (), {}))
+        self.stash_event(Event(name, str(type(module)), "Activation", output, (), {}))
 
     def _forward_hook_v2(
         self,
@@ -190,10 +185,7 @@ class TorchTracker(BaseTracker):
                 Event(name, str(type(module)), "Activation", output, (), {})
             )
 
-    def _backward_hook(self,
-                       module: nn.Module,
-                       grad_output: Any,
-                       *, name: str) -> None:
+    def _backward_hook(self, module: nn.Module, grad_output: Any, *, name: str) -> None:
         self.stash_event(
             Event(name, str(type(module)), "Gradient", grad_output, (), {})
         )
@@ -211,9 +203,16 @@ class TorchTracker(BaseTracker):
         ):
             for k, v in state.items():
                 if k != "step":
-                    self.stash_event(Event(
-                        pn.removesuffix(".weight"), None,
-                        f"Optimiser_State.{k}", v, (), {}))  # type: ignore
+                    self.stash_event(
+                        Event(
+                            pn.removesuffix(".weight"),
+                            None,
+                            f"Optimiser_State.{k}",
+                            v,
+                            (),
+                            {},
+                        )
+                    )  # type: ignore
 
     def _stash_model_weights(self):
         """
@@ -373,8 +372,7 @@ def track(
         )
         if optimizer:
             tracker.register_optimiser(
-                optimizer,
-                param_names=[m for m, p in module.named_parameters()]
+                optimizer, param_names=[m for m, p in module.named_parameters()]
             )
         if track_weights:
             tracker.register_weights(model=module)

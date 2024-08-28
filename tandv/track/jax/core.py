@@ -62,13 +62,10 @@ def get_stash_fn(
     stash_value: Optional[StashValueFn] = None, stash: Optional[StashFn] = None
 ) -> StashFn:
     if stash_value and stash:
-        raise ValueError(
-            "Cannot provide StashValueFn and StashFn to get_stash_fn()")
+        raise ValueError("Cannot provide StashValueFn and StashFn to get_stash_fn()")
     if stash:
         return stash
-    return partial(default_stash,
-                   stash_value=stash_value or
-                   stash_all_stats_and_hist)
+    return partial(default_stash, stash_value=stash_value or stash_all_stats_and_hist)
 
 
 class JaxTracker(BaseTracker):
@@ -99,10 +96,8 @@ class JaxTracker(BaseTracker):
         self.track_gradients = track_gradients
         self.track_weights = False
         self.track_optimizer = False
-        self.include = re.compile(include) if \
-            isinstance(include, str) else include
-        self.exclude = re.compile(exclude) if \
-            isinstance(exclude, str) else exclude
+        self.include = re.compile(include) if isinstance(include, str) else include
+        self.exclude = re.compile(exclude) if isinstance(exclude, str) else exclude
 
         # Capture statistics on initial states of model and optimiser
         if not isinstance(model_state, NoneType):
@@ -122,8 +117,9 @@ class JaxTracker(BaseTracker):
         return super().__exit__(exc_type, exc, traceback)
 
     def _check_included(self, name: str) -> bool:
-        return ((not self.include) or self.include.search(name)) and \
-            not (self.exclude and self.exclude.search(name))  # type: ignore
+        return ((not self.include) or self.include.search(name)) and not (
+            self.exclude and self.exclude.search(name)
+        )  # type: ignore
 
     def create_event_and_stash(
         self,
@@ -215,11 +211,7 @@ class JaxTracker(BaseTracker):
             if is_weights(path):
                 name = ".".join([pk.key for pk in path[1:-1]])
                 if self._check_included(name):
-                    self.stash_event(Event(
-                        name,
-                        None,
-                        "Weights",
-                        value, (), {}))
+                    self.stash_event(Event(name, None, "Weights", value, (), {}))
 
     def _stash_opt_state(self, opt_state: Tuple) -> None:
         """
@@ -236,12 +228,10 @@ class JaxTracker(BaseTracker):
             if os.__class__.__orig_bases__[0] is NamedTuple and not isinstance(
                 os, EmptyState
             ):
-                state_fields: List[str] = [
-                    f for f in os._fields if f != "count"]
+                state_fields: List[str] = [f for f in os._fields if f != "count"]
 
                 for statefield in state_fields:
-                    flat_tree, _ = tree_flatten_with_path(
-                        getattr(os, statefield))
+                    flat_tree, _ = tree_flatten_with_path(getattr(os, statefield))
 
                     for path, value in flat_tree:
                         if is_weights(path):
@@ -250,8 +240,7 @@ class JaxTracker(BaseTracker):
                             if self._check_included(name):
                                 self.stash_event(
                                     Event(
-                                        ".".join([
-                                            pk.key for pk in path[1:-1]]),
+                                        ".".join([pk.key for pk in path[1:-1]]),
                                         None,
                                         f"Optimiser_State\
                                             .{statefield}",  # type: ignore

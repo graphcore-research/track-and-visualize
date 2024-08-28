@@ -1,8 +1,8 @@
 # Copyright (c) 2024 Graphcore Ltd. All rights reserved.
 import math
-import pytest
 
 import numpy as np
+import pytest
 import torch
 
 from ..track.torch import stash_full_tensor, stash_hist, stash_scalar_stats
@@ -34,8 +34,7 @@ def test_stash_hist_cpu():
     assert np.sum(en["exp_hist"]["hist"]) == B * N * M, " "
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(),
-                    reason="CUDA is not available")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_stash_hist_cuda():
     t1, t0, tn = (
         torch.ones((B, N, M), dtype=torch.float32).to("cuda"),
@@ -65,27 +64,30 @@ def test_stash_hist_cuda():
 
 
 def test_stash_scalar_stats_cpu():
-    t1, t0, tn = torch.ones((B, N, M)), \
-        torch.zeros((B, N, M)), torch.randn((B, N, M))
+    t1, t0, tn = torch.ones((B, N, M)), torch.zeros((B, N, M)), torch.randn((B, N, M))
 
-    s1, s0, sn = stash_scalar_stats(t1), \
-        stash_scalar_stats(t0), stash_scalar_stats(tn)
+    s1, s0, sn = stash_scalar_stats(t1), stash_scalar_stats(t0), stash_scalar_stats(tn)
 
     for k, v in s1.items():
-        assert v == 1 or v == 0, f"{k} does not have a \
+        assert (
+            v == 1 or v == 0
+        ), f"{k} does not have a \
             valid value, value = {v}"
 
     for k, v in s0.items():
-        assert v == 0 or math.isnan(v), f"{k} does not \
+        assert v == 0 or math.isnan(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in sn.items():
-        assert math.isfinite(v), f"{k} does not \
+        assert math.isfinite(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(),
-                    reason="CUDA is not available")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_stash_scalar_stats_cuda():
     t1, t0, tn = (
         torch.ones((B, N, M)).to("cuda"),
@@ -93,19 +95,24 @@ def test_stash_scalar_stats_cuda():
         torch.randn((B, N, M)).to("cuda"),
     )
 
-    s1, s0, sn = stash_scalar_stats(t1), \
-        stash_scalar_stats(t0), stash_scalar_stats(tn)
+    s1, s0, sn = stash_scalar_stats(t1), stash_scalar_stats(t0), stash_scalar_stats(tn)
 
     for k, v in s1.items():
-        assert v == 1 or v == 0, f"{k} does not \
+        assert (
+            v == 1 or v == 0
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in s0.items():
-        assert v == 0 or math.isnan(v), f"{k} does not \
+        assert v == 0 or math.isnan(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in sn.items():
-        assert math.isfinite(v), f"{k} does not \
+        assert math.isfinite(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
 

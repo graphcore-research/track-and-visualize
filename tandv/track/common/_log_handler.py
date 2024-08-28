@@ -18,8 +18,7 @@ from ._q import EXP, META, SCA
 """
 
 
-def map_hist(value: Dict[str, Any]) -> Dict[
-                                        Tuple[str, Union[int, float]], int]:
+def map_hist(value: Dict[str, Any]) -> Dict[Tuple[str, Union[int, float]], int]:
     """
     Simple fn which replaces the max and min bin edges with +/- \
         infinity and returns a dict of tuple(metadata, bin_edge) : count
@@ -50,8 +49,7 @@ def check_for_prefill(global_dict: Dict):
         return []
 
 
-def global_stash_to_logframe(
-        global_stash: Dict[int, List[Dict]]) -> pd.DataFrame:
+def global_stash_to_logframe(global_stash: Dict[int, List[Dict]]) -> pd.DataFrame:
     """
     Takes the global stash and converts it a \
         Dataframe (that conforms to the LogFrame Schema)
@@ -96,13 +94,14 @@ def global_stash_to_logframe(
                         df_dict[META(key)].append(value)
 
                 else:
-                    assert (type(value) is dict), f"{key} needs to be \
+                    assert (
+                        type(value) is dict
+                    ), f"{key} needs to be \
                         a dict not {type(value)}, {value}"
                     for value_type, nested_dict in value.items():
                         if value_type == "exp_hist":
                             hist_list_lens = []
-                            for bin_edge, count in map_hist(
-                                                    nested_dict).items():
+                            for bin_edge, count in map_hist(nested_dict).items():
                                 if bin_edge not in df_dict.keys():
                                     # If there histograms are being tracked \
                                     # for variable dtype ranges \
@@ -174,19 +173,20 @@ def summarise_logframe(df: pd.DataFrame) -> Dict[int, Any]:
 
     """
     # Get Underflow & overflow stats
-    df[("scalar_stats", "underflow_rate")] = \
-        df.exponent_counts.div(
-            df.exponent_counts.sum(axis="columns"),
-            axis=0)[float("-inf")]  # type: ignore
-    df[("scalar_stats", "overflow_rate")] = \
-        df.exponent_counts.div(
-            df.exponent_counts.sum(axis="columns"),
-            axis=0)[float("inf")]  # type: ignore
+    df[("scalar_stats", "underflow_rate")] = df.exponent_counts.div(
+        df.exponent_counts.sum(axis="columns"), axis=0
+    )[
+        float("-inf")
+    ]  # type: ignore
+    df[("scalar_stats", "overflow_rate")] = df.exponent_counts.div(
+        df.exponent_counts.sum(axis="columns"), axis=0
+    )[
+        float("inf")
+    ]  # type: ignore
 
     # Grouby tensor_type & step, then get mean for each scalar_stats
     df_dict = (
-        df.groupby([("metadata", "step"), ("metadata", "tensor_type")],
-                   as_index=False)
+        df.groupby([("metadata", "step"), ("metadata", "tensor_type")], as_index=False)
         .scalar_stats.mean()
         .to_dict()
     )
@@ -199,8 +199,7 @@ def summarise_logframe(df: pd.DataFrame) -> Dict[int, Any]:
         if steps[key] not in summary_dict.keys():
             summary_dict[steps[key]] = {}
         for k, v in df_dict.items():
-            summary_dict[steps[key]][
-                f"Numerics.{tt_types[key]}/{k[-1]}"] = v[key]
+            summary_dict[steps[key]][f"Numerics.{tt_types[key]}/{k[-1]}"] = v[key]
 
     return summary_dict
 

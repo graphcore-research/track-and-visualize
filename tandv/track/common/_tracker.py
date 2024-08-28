@@ -3,7 +3,6 @@ import concurrent.futures
 import logging
 import pickle
 import traceback
-import msgpack
 from pathlib import Path
 from types import TracebackType
 from typing import (
@@ -19,6 +18,7 @@ from typing import (
     Union,
 )
 
+import msgpack
 import randomname
 
 from ... import _config
@@ -170,8 +170,7 @@ class BaseTracker:
         self.stashes.clear()
 
     def move_to_global_stash(self):
-        self._global_stash[self._step] = [
-            stash.__dict__ for stash in self.stashes]
+        self._global_stash[self._step] = [stash.__dict__ for stash in self.stashes]
 
     def offload_global_stash(self, final: bool = False):
         # unimplemented as of yet, but where the stashes are \
@@ -191,14 +190,12 @@ class BaseTracker:
                 # Log numerics stats without incremeting step
                 if final:
                     wandb.log(
-                        summary_dict[self._step - 1],
-                        step=self.wandb_run.step - 1
+                        summary_dict[self._step - 1], step=self.wandb_run.step - 1
                     )
 
                 else:
                     wandb.log(
-                        summary_dict[self.wandb_run.step],
-                        step=self.wandb_run.step
+                        summary_dict[self.wandb_run.step], step=self.wandb_run.step
                     )
 
                 self._artifact.add_file(str(out))
@@ -208,12 +205,13 @@ class BaseTracker:
         _ = self._executor.submit(
             async_wrapper,
             self.offload_fn,
-            self._name, self._step,
-            msgpack.packb(self._global_stash))  # type: ignore
+            self._name,
+            self._step,
+            msgpack.packb(self._global_stash),
+        )  # type: ignore
         self.evict_global_stash()
 
-    def _read_summary_bin_log(self) -> Tuple[
-            bool, Union[Dict[Any, Any], None]]:
+    def _read_summary_bin_log(self) -> Tuple[bool, Union[Dict[Any, Any], None]]:
         # May replace this with a shared memory buffer, /
         # if I can think of a good way to set the size effectly
         p = Path(f"./{_libname}/{self._name}/")
@@ -250,8 +248,7 @@ class BaseTracker:
                 if a and b:
                     if self.wandb_run.step in b.keys():
                         # Log numerics stats without incremeting step
-                        wandb.log(b[self.wandb_run.step],
-                                  step=self.wandb_run.step)
+                        wandb.log(b[self.wandb_run.step], step=self.wandb_run.step)
 
         # increment step
         self._step += 1

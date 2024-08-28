@@ -46,8 +46,7 @@ def get_toolbar(**kwargs) -> Dict[str, widgets.Widget]:
         assert (
             type(kind) is list and len(kind) > 0
         ), f"Invalid type provided for kind: {kind}"
-        toolbar_components["kind"] = widgets.Dropdown(options=kind,
-                                                      value=kind[0])
+        toolbar_components["kind"] = widgets.Dropdown(options=kind, value=kind[0])
 
     # tt
     if "tt" in kwargs.keys():
@@ -67,8 +66,7 @@ def get_toolbar(**kwargs) -> Dict[str, widgets.Widget]:
 
     # scalar metric
     if "scalar_metric" in kwargs.keys():
-        scalar_metric: Union[List[str], str, None] = kwargs.get(
-            "scalar_metric")
+        scalar_metric: Union[List[str], str, None] = kwargs.get("scalar_metric")
         df: Union[pd.DataFrame, None] = kwargs.get("df")
         assert (
             type(df) is pd.DataFrame
@@ -144,8 +142,7 @@ def get_toolbar(**kwargs) -> Dict[str, widgets.Widget]:
             )  # type: ignore
         else:
             toolbar_components["layer"] = widgets.SelectMultiple(
-                options=df.metadata.name.unique().tolist(),
-                value=value
+                options=df.metadata.name.unique().tolist(), value=value
             )  # type: ignore
 
     return toolbar_components
