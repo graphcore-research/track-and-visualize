@@ -15,11 +15,11 @@ setuptools.setup(
         'torch': Path("requirements-torch.txt")
             .read_text()
             .rstrip("\n")
-            .split("\n"),
+            .split("\n")[1:],
         'jax':  Path("requirements-jax.txt")
             .read_text()
             .rstrip("\n")
-            .split("\n"),
+            .split("\n")[1:],
         'wandb': ['wandb']
     },
     packages=["tandv", "tandv.viz", "tandv.track", "tandv.track.common",
