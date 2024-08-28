@@ -14,3 +14,4 @@ profiling-logging-overhead
 *.egg-info
 .mypy_cache
 .pytest_cache
+docs/tandv/
