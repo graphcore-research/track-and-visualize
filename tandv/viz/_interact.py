@@ -398,7 +398,7 @@ def interactive(
                 drargs = dict(
                     fig=event.canvas.figure,
                     df=DF,
-                    ayer=layer,
+                    layer=layer,
                     step=step,
                     **WH.state()
                 )
