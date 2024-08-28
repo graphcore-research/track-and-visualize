@@ -12,3 +12,5 @@ local-explorations
 wandb
 profiling-logging-overhead
 *.egg-info
+.mypy_cache
+.pytest_cache

@@ -1,2 +1,0 @@
-
-![alt text](image.png)
