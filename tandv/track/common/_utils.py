@@ -16,7 +16,8 @@ from ._errors import SchemaException
 
 def _dataframe_migration(df: pd.DataFrame, schema_map: Any) -> pd.DataFrame:
     """
-    Takes an arbitrary dataframe of logs and a schema-map and returns a DataFrame where values are stored under the appropriate metadata.
+    Takes an arbitrary dataframe of logs and a schema-map and returns a DataFrame where
+    values are stored under the appropriate metadata.
     """
 
     return df
@@ -30,11 +31,15 @@ def _get_df_schema_hash(df: pd.DataFrame):
 def _validate_df_hash(df: pd.DataFrame):
     if "vis-meta" not in df.attrs.keys():
         raise SchemaException(
-            "The DataFrame schema has not been validated, please load the DataFrame using one of built-in read functions in the library, or call the validate fn on the existign DF"
+            "The DataFrame schema has not been validated, please load the DataFrame "
+            "using one of built-in read functions in the library, or call the validate "
+            "fn on the existign DF"
         )
     if not df.attrs["vis-meta"]["hash"] == _get_df_schema_hash(df):
         raise SchemaException(
-            "The configuration of the DataFrame structure has changed since the file was loaded, please re-validate the DF before passing it into the vis function"
+            "The configuration of the DataFrame structure has changed since the file "
+            "was loaded, please re-validate the DF before passing it into the vis "
+            "function"
         )
 
 
@@ -46,12 +51,12 @@ def _validate_schema(df: pd.DataFrame, SCHEMA=_types.LogFrame, debug=False):
 
     def _check_dtype(col, key_map=None) -> bool:
         # uses outer fn varaibles, schema, comp_fn and df
-        dtype_opt = schema[col] if key_map == None else wcs[key_map].dtype
+        dtype_opt = schema[col] if key_map is None else wcs[key_map].dtype
 
         if typing.get_origin(dtype_opt) == typing.Union:
             # iterate over args
             for arg in typing.get_args(dtype_opt):
-                if arg != None:
+                if arg is not None:
                     # check it is this type
                     if comp_fn[arg](df.dtypes[col]):
                         # if so return True
@@ -114,20 +119,23 @@ def _validate_schema(df: pd.DataFrame, SCHEMA=_types.LogFrame, debug=False):
     # if all columns don't pass validation, Raise Schema Exception
     if counter != len(df.columns):
         raise SchemaException(
-            f"The following columns did not match the schema: {','.join([str(umc[1]) for umc in un_matched_cols])}"
+            "The following columns did not match the schema: "
+            f"{','.join([str(umc[1]) for umc in un_matched_cols])}"
         )
 
     # Make sure WildCards match
     for key, value in wcs.items():
         if value.count > key[1].max or value.count < key[1].min:
             raise SchemaException(
-                f"{key[0]}, wild card column count: {value.count}, is not in required range ({key[1].min} - {key[1].max})"
+                f"{key[0]}, wild card column count: {value.count}, is not in required "
+                f"range ({key[1].min} - {key[1].max})"
             )
 
     if len(matched_keys) != len(schema.keys()):
-        raise SchemaException(
-            f"Missing Required Columns: {','.join([str(key) for key in list(schema.keys()) if key not in matched_keys])}"
+        cols = ",".join(
+            [str(key) for key in list(schema.keys()) if key not in matched_keys]
         )
+        raise SchemaException(f"Missing Required Columns: {cols}")
 
     df.attrs["vis-meta"] = {"hash": _get_df_schema_hash(df)}
     return df

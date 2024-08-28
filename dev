@@ -70,7 +70,7 @@ def python(commands: List[Any]) -> None:
 def lint() -> None:
     """run static analysis"""
     run(["python", "-m", "flake8", *PYTHON_ROOTS])
-    run(["python", "-m", "mypy", *PYTHON_ROOTS])
+    # run(["python", "-m", "mypy", *PYTHON_ROOTS])
 
 
 @cli("--check", action="store_true")

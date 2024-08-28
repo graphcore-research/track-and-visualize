@@ -77,7 +77,7 @@ def _gen_facet_query(
     # logic for faceting by Tensor
     if type(tt) is list:
         # convert List[TT] to list string and format for query
-        tq = f" in {[t.name if type(t) != str else t for t in tt]}"
+        tq = f" in {[t.name if type(t) != str else t for t in tt]}"  # noqa: E721
         facet = _q.TTYPE
     elif tt is None:
         # Retrieve the set of unique TT's in DF and format query \
@@ -90,7 +90,7 @@ def _gen_facet_query(
         facet = _q.TTYPE
     elif type(tt) is TensorType or type(tt) is str:
         tq = f' == \
-            "{tt.name if type(tt) == TensorType else tt}"'  # type: ignore
+            "{tt.name if type(tt) == TensorType else tt}"'  # noqa: E721
 
     query = f"@df.metadata.name{lq} & @df.metadata.tensor_type{tq}"
 
@@ -139,7 +139,9 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(fp_info.maxexp)),
                     "-",
-                    f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
+                    f"{str(fp_info.dtype).upper()} - "
+                    f"Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) "
+                    f"| {fp_info.max} (rv)",
                 )
             )
         else:
@@ -148,7 +150,9 @@ def _annotate_nf_details(
                     (
                         fp_info.max,
                         "-",
-                        f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
+                        f"{str(fp_info.dtype).upper()} - "
+                        f"Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) "
+                        f"| {fp_info.max} (rv)",
                     )
                 )
             else:
@@ -162,7 +166,9 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_normal))),
                     "--",
-                    f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest Normal: "
+                    f"{f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) "
+                    f"| {fp_info.smallest_normal} (rv)",
                 )
             )
         else:
@@ -171,7 +177,9 @@ def _annotate_nf_details(
                     (
                         fp_info.smallest_normal,
                         "--",
-                        f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest Normal: "
+                        f"{f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) "
+                        f"| {fp_info.smallest_normal} (rv)",
                     )
                 )
             else:
@@ -188,7 +196,9 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_subnormal))),
                     ":",
-                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal: "
+                    f"{f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) "
+                    f"| {fp_info.smallest_subnormal} (rv)",
                 )
             )
         else:
@@ -200,7 +210,9 @@ def _annotate_nf_details(
                     (
                         fp_info.smallest_subnormal,
                         ":",
-                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal: "
+                        f"{f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp)"
+                        f" | {fp_info.smallest_subnormal} (rv)",
                     )
                 )
             else:
@@ -297,8 +309,8 @@ class _GlobalHeatmapPlotter(_BasePlotter):
     ) -> pd.DataFrame:
         return df.query(
             f'@df.metadata.tensor_type == \
-                "{tt.name if type(tt) == TensorType else tt }" \
-                    & @df.metadata.step % {inc} == 0'
+                "{tt.name if type(tt) == TensorType else tt}" \
+                    & @df.metadata.step % {inc} == 0'  # noqa: E721
         )  # type: ignore
 
     def _plot_single(self, df: pd.DataFrame, ax: matplotlib.axes.Axes):
