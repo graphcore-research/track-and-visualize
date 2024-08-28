@@ -58,15 +58,15 @@ with track(model_state=model_state,optimizer_state=opt_state,...) as tracker:
 #### Static Vizualisation
 ```python
 # Imports
-from nvis import viz
-from nvis.log.common import read_pickle
+from tandv import viz
+from tandv.track.common import read_pickle
 
 # load data
 df = read_pickle('path/to/example-logs.pkl') 
 #If the data doesn't conform to the schema this will raise an Exception
 
 # Generate Visualation
-fig = vis.exp_hist(
+fig = viz.exp_hist(
     df=df,
     layer='output',
     tt='Activation',
@@ -76,12 +76,12 @@ fig = vis.exp_hist(
 ```
 
 #### Interactive Vizualisation
-Interactive versions of each plot can be achieved by passing the vis function and the relevent kwargs to the interactive function.
+Interactive versions of each plot can be achieved by passing the viz function and the relevent kwargs to the interactive function.
 
 ```python
 # Pass the plotting function into the interactive function with the required kwargs (for the plotting function) along with any others you need to create the interactive plot.
-vis.interactive(
-    f= vis.scalar_line,
+viz.interactive(
+    f= viz.scalar_line,
     df=df,
     tt='Activation',
     layer='output',
@@ -92,8 +92,8 @@ vis.interactive(
 ![Interactive Scalar Line](/assets/scalar_line.gif)
 
 ```python
-vis.interactive(
-    f= vis.scalar_global_heatmap,
+viz.interactive(
+    f= viz.scalar_global_heatmap,
     df=df,
     tt='Activation',
     col_wrap = 3,
@@ -104,8 +104,8 @@ vis.interactive(
 ![Scalar Global Heatmap](/assets/global_scalar_heatmap.gif)
 
 ```python
-vis.interactive(
-    f=vis.exp_hist,
+viz.interactive(
+    f=viz.exp_hist,
     df=df,
     layer='output',
     tt='Activation',
@@ -124,7 +124,7 @@ vis.interactive(
 
 ### Required Log Schema
 
-In order to visualise the data in a useful way and simplify the API design some assurances about the structure of the data are needed. Therefore the library enforces a Schema. The logging data must be in the form of a `pandas.MultiIndex`, with three top level indexes, **metadata**, **scalar_stats** and **exponent_counts**.
+In order to visualize the data in a useful way and simplify the API design some assurances about the structure of the data are needed. Therefore the library enforces a Schema. The logging data must be in the form of a `pandas.MultiIndex`, with three top level indexes, **metadata**, **scalar_stats** and **exponent_counts**.
 
 #### Metadata
 The `"metadata"` top-level contains the non-data dependent information about the tensor.
@@ -143,7 +143,7 @@ The `"metadata"` top-level contains the non-data dependent information about the
 The `"scalar_stats"` top-level contains all the scalar statistics logged to summarise the data contained with-in the tensors.
 | Column Name | Tuple (for Pandas) | Description | Type |
 | -------- | ------- | ------- | ------- |
-|`+`| `("scalar_stats,*)`| There is no restriction on what scalar statistics about the tensor that can be visualised. The schema only enforces there this at-least 1 column which this criteria. The `*` can be substituted for any string you wish to use (e.g. `"std"`). | `Union[float,int]`|
+|`+`| `("scalar_stats,*)`| There is no restriction on what scalar statistics about the tensor that can be visualized. The schema only enforces there this at-least 1 column which this criteria. The `*` can be substituted for any string you wish to use (e.g. `"std"`). | `Union[float,int]`|
 
 #### Exponent Counts
 These columns store the histogram counts for each exponent in the number format. For example, Column `n` ${n}$ would contain the quanity of values that fall in the range ${2^n}$ to ${2^{n+1}}$.
@@ -157,7 +157,7 @@ These columns store the histogram counts for each exponent in the number format.
 Currently `+inf` & `-inf` are required. However this will likely change to optional as hardware will clamp overflows to the MRV or 0 (in the case of underflows). The work -around if you're not producing infinites in your logs is to simply add the infinity columns with each entry as zero.
 
 
-### Feedback
+<!-- ### Feedback
 Any feedback for the tool would be greatly appreciated.
 
 If providing feedback on the tool could you please provide it in the format below.
@@ -175,38 +175,34 @@ Please provide a rating for each of the 4 criteria and if you have any additiona
 | Usability: | |
 | Visualisation Quality:| |
 
-
-
 **Additional Comments:**
 
 ### Issues / Bugs
 Detail any errors or bugs you encountered here.
-
 
 ### Features
 Detail any features you wish to see added to the library (i.e. additional plots, additional inputs for interactive plots, additional interactions with the visualisation, etc..)
 
 
 ### Documentation
-Did the documentation make sense? Any areas that need clarifying?
-
+Did the documentation make sense? Any areas that need clarifying? -->
 
 
 ### Notes on Different Jupyter Front-Ends
 #### VS-Code
-When installing `nvis` for the first time on VS-Code, you may get a Javascript error in the notebook, if this occurs simply exit VS-Code and start it again, then the error should resolved.
+When installing `tandv` for the first time on VS-Code, you may get a Javascript error in the notebook, if this occurs simply exit VS-Code and start it again, then the error should resolved.
 
 #### Google Colab
-After installing `nvis` on colab, you may need to restart the Jupyter session, as colab may not immediately have access to the `matplotlib` backend.
+After installing `tandv` on colab, you may need to restart the Jupyter session, as colab may not immediately have access to the `matplotlib` backend.
 
-Also `nvis` depends on `ipympl`. To use it with a colab notebook you need to call:
+Also `tandv` depends on `ipympl`. To use it with a colab notebook you need to call:
 
 ```python
 from google.colab import output
 output.enable_custom_widget_manager()
 ```
 
-before executing any `nvis` functions.  
+before executing any `tandv` functions.  
 
 
 ### Developers Install

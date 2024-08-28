@@ -24,7 +24,7 @@ source .venv/bin/activate
 
 ## Adding a Static Plot
 ### Plotters
-Implement a plotter class which inherits from either and conforms to one of the interface(s) from `nvis.vis._plots`:
+Implement a plotter class which inherits from either and conforms to one of the interface(s) from `tandv.viz._plots`:
 
 ```python
 _BasePlotter #(Single Axes plot) 
@@ -39,13 +39,13 @@ _BaseFacetPlotter #(Single or Multi-Axes plot)
 Arguments should be the names of any columns that are required to generate the plot along with any arguments for the underlying plotting function(s)
 
 `_query` 
-Arguments are; `pd.DataFrame` and the set of values which to filter out the sets of rows query for the plot and/or the set of columns required for the visualisation
+Arguments are; `pd.DataFrame` and the set of values which to filter out the sets of rows query for the plot and/or the set of columns required for the visualization
 
 `_plot_single`
 Arguments are; `pd.DataFrame` and a `matplotlib.axes.Axes`
-This is where the plotting function from Matplotlib or Seaborn (or any other visualisation library built on top of MPL) lives. 
+This is where the plotting function from Matplotlib or Seaborn (or any other visualization library built on top of MPL) lives. 
 
-No querying of data should take place here, however you can transform the DF from wide to long format, etc, normalise values before visualisation etc..
+No querying of data should take place here, however you can transform the DF from wide to long format, etc, normalise values before visualization etc..
 
 `_plot_facet` (only for `_BaseFacetPlotter`)
 Arguments are;  `pd.DataFrame` and a `matplotlib.figure.Figure`
@@ -59,13 +59,13 @@ The `Plotters` are private and exposed to the public api via a plotting function
 All plotting functions return a `matplotlib.figure.Figure`
 
 ### Design Principles
-The goal of the plotting function is to offer as much of the power and customisability of the underlying visualisation tools (`matplotlib`, `seaborn`, etc..) as reasonably possible, therefore the plot functions should allow the user to pass arguments via \*\*kwargs or explicit keyword arguments which are plumbed down to the underlying visualisation functions.
+The goal of the plotting function is to offer as much of the power and customisability of the underlying visualization tools (`matplotlib`, `seaborn`, etc..) as reasonably possible, therefore the plot functions should allow the user to pass arguments via \*\*kwargs or explicit keyword arguments which are plumbed down to the underlying visualization functions.
 
 
 ## Making a Static Plot Interactive
-The design of the API for making plot interactive, is you pass the vis function into `interactive` function as an argument, and pass in the required arguments for the vis function as `kwargs`, therefore there is near zero additional learning curve for users to go from static to interactive plots.
+The design of the API for making plot interactive, is you pass the vizfunction into `interactive` function as an argument, and pass in the required arguments for the vizfunction as `kwargs`, therefore there is near zero additional learning curve for users to go from static to interactive plots.
 
-*If you have implemented a new vis function, here are some key things to note for making it interactive*
+*If you have implemented a new vizfunction, here are some key things to note for making it interactive*
 
 ### State Variables you may need
 
@@ -81,7 +81,7 @@ This manages the state of the all the widgets in the toolbar. When a value is ch
 
 Also contains some methods for managing the toolbar.
 
-All the widgets are stored in a Dictionary. Also an important note is that the `key` of the widget in the `WH` dictionary is the keyword argument used to pass the widget value into the vis function, therefore it must be the same as the `kwarg` the vis function is expecting or it will result in an `AttributeError`.
+All the widgets are stored in a Dictionary. Also an important note is that the `key` of the widget in the `WH` dictionary is the keyword argument used to pass the widget value into the vizfunction, therefore it must be the same as the `kwarg` the vizfunction is expecting or it will result in an `AttributeError`.
 
 `STACK_NUM` (`int`)
 If your plot transitions from one plot type to another change the value `STACK_NUM`, so it handles the interaction in the appropriate way.
@@ -93,7 +93,7 @@ The `CROSSHAIR` manages interactions the state of interactions with the training
 
 `DF` The pd.DataFrame variable, so that it can be accessed from any `matplotlib` event handling closure.
 
-`TT, INC, SCALAR_METRIC, etc...` These are the initial query parameters and are required if you wish to be able to return your visualisation to its initial state.
+`TT, INC, SCALAR_METRIC, etc...` These are the initial query parameters and are required if you wish to be able to return your visualization to its initial state.
 ### Helper function(s) you may need
 
 `get_toolbar` is a helper function that simply creates the various widgets for the toolbar, if your `vis` function uses a query argument other than those already implemented, just add it to `get_toolbar` function.
@@ -123,7 +123,7 @@ The way we have found so far to ensure that these references are not garbage col
 
 For any state values you may need which aren't provided see **State Variables you may need** section below.
 
-If you are transitioning from vis type to another (i.e. `scalar_global_heatmap` to `exp_hist` via a `mpl` event handler), it is important to rebuild the Toolbar and change the state of the `WidgetHolder`:
+If you are transitioning from viztype to another (i.e. `scalar_global_heatmap` to `exp_hist` via a `mpl` event handler), it is important to rebuild the Toolbar and change the state of the `WidgetHolder`:
 
 ```python
 	WidgetHolder.nuke()
@@ -138,12 +138,12 @@ If you are transitioning from vis type to another (i.e. `scalar_global_heatmap` 
 `plotabbreviation_eventtype`, e.g. `sgh_onclick` for the event handler for the`scalar_global_heatmap` `onclick` event handler`
 
 ### Implementing a redraw function
-The redraw function is quite similar to the public vis function for your creating your static plot. 
+The redraw function is quite similar to the public vizfunction for your creating your static plot. 
 The only difference is you do not create a new figure, and call `fig.clear()` and `fig.canvas.redraw()`.
 
 ```python
 	### ... denotes query args for your plot
-	def _your_vis_fn_name_redraw(fig: matplotlib.figure.Figure, 
+	def _your_viz_fn_name_redraw(fig: matplotlib.figure.Figure, 
 								df: pd.DataFrame,...,**kwargs):
 		# clear figure
 		fig.clear()
@@ -165,9 +165,9 @@ The only difference is you do not create a new figure, and call `fig.clear()` an
 ### Initialising your interactive figure
 In the control branch of the `interactive` function add some code like this
 ```python
-###### YOUR VIS FUNCTION ######
+###### YOUR vizFUNCTION ######
 
-elif f.__name__ == 'your_vis_fn_name':
+elif f.__name__ == 'your_viz_fn_name':
 	#connect event handler(s) to figure
 	cid = fig.figure.canvas.mpl_connect('button_press_event', your_handler_fn)
 	# create WidgetHolder
@@ -211,4 +211,4 @@ elif f.__name__ == 'your_vis_fn_name':
 
 **T.D.L.R.**
 attach `matplotlib` event handler, initialise `WidgetHolder`,  call `.observe` on `WidgetHolder`,
-attach a redraw function (`_your_vis_fn_name_redraw`) to the `WidgetHolder`
+attach a redraw function (`_your_viz_fn_name_redraw`) to the `WidgetHolder`
