@@ -1,5 +1,6 @@
 # Copyright (c) 2024 Graphcore Ltd. All rights reserved.
 import math
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -23,8 +24,7 @@ def gen_unit_gauss(B, N, M):
     std_dev = 1.0
 
     # Generate Gaussian samples
-    return mean + std_dev * jax.random.normal(
-        key, (B, N, M), dtype=jnp.float32)
+    return mean + std_dev * jax.random.normal(key, (B, N, M), dtype=jnp.float32)
 
 
 def test_stash_hist_cpu():
@@ -69,41 +69,42 @@ def test_stash_hist_cuda():
     assert len(en["hist"]) == len(en["bins"])
 
     assert (
-        np.sum(e1["hist"]) == B * N * M and
-        e1["bins"][np.argmax(e1["hist"])] == 1
+        np.sum(e1["hist"]) == B * N * M and e1["bins"][np.argmax(e1["hist"])] == 1
     ), f"{e1['bins'][np.argmax(e1['hist'])]}"
 
     assert (
-        np.sum(e0["hist"]) == B * N * M and
-        e0["bins"][np.argmax(e0["hist"])] == 0
+        np.sum(e0["hist"]) == B * N * M and e0["bins"][np.argmax(e0["hist"])] == 0
     ), f"{e0['bins'][np.argmax(e0['hist'])]}"
 
     assert np.sum(en["hist"]) == B * N * M
 
 
 def test_stash_scalar_stats_cpu():
-    t1, t0, tn = jnp.ones((B, N, M)), \
-        jnp.zeros((B, N, M)), gen_unit_gauss(B, N, M)
+    t1, t0, tn = jnp.ones((B, N, M)), jnp.zeros((B, N, M)), gen_unit_gauss(B, N, M)
 
-    s1, s0, sn = stash_scalar_stats(t1), \
-        stash_scalar_stats(t0), stash_scalar_stats(tn)
+    s1, s0, sn = stash_scalar_stats(t1), stash_scalar_stats(t0), stash_scalar_stats(tn)
 
     for k, v in s1.items():
-        assert v == 1 or v == 0, f"{k} does not \
+        assert (
+            v == 1 or v == 0
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in s0.items():
-        assert v == 0 or math.isnan(v), f"{k} does not \
+        assert v == 0 or math.isnan(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in sn.items():
-        assert math.isfinite(v), f"{k} does not have a \
+        assert math.isfinite(
+            v
+        ), f"{k} does not have a \
             valid value, value = {v}"
 
 
 def test_stash_scalar_stats_cuda():
-    t1, t0, tn = jnp.ones((B, N, M)), \
-        jnp.zeros((B, N, M)), gen_unit_gauss(B, N, M)
+    t1, t0, tn = jnp.ones((B, N, M)), jnp.zeros((B, N, M)), gen_unit_gauss(B, N, M)
 
     fn = jax.jit(_stash_scalar_stats)
 
@@ -114,15 +115,21 @@ def test_stash_scalar_stats_cuda():
     )
 
     for k, v in s1.items():
-        assert v == 1 or v == 0, f"{k} does not \
+        assert (
+            v == 1 or v == 0
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in s0.items():
-        assert v == 0 or math.isnan(v), f"{k} does not \
+        assert v == 0 or math.isnan(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
     for k, v in sn.items():
-        assert math.isfinite(v), f"{k} does not \
+        assert math.isfinite(
+            v
+        ), f"{k} does not \
             have a valid value, value = {v}"
 
 

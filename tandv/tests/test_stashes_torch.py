@@ -3,9 +3,11 @@ import logging
 import shutil
 from pathlib import Path
 
+import pytest
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 from ..track.common import read_pickle
 from ..track.torch import stash_all_stats_and_hist, track
 
@@ -59,8 +61,14 @@ def test_tracker_cpu():
 
         if tt not in ["Activation", "Gradient"]:
 
-            names = df.query(f'@df.metadata.tensor_type == "{tt}"\
-                             ').metadata.name.unique().tolist()  # type: ignore
+            names = (
+                df.query(
+                    f'@df.metadata.tensor_type == "{tt}"\
+                             '
+                )
+                .metadata.name.unique()
+                .tolist()
+            )  # type: ignore
 
             assert set(names) == set(
                 p_names
@@ -72,6 +80,7 @@ def test_tracker_cpu():
     shutil.rmtree(p)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_tracker_cuda():
     model = SimpleModel(input_size=INDIM).to("cuda")
     loss_fn = torch.nn.BCEWithLogitsLoss()
@@ -95,8 +104,7 @@ def test_tracker_cuda():
             optimizer.step()
             tracker.step()
 
-    p_names = [n[0].split(".")[0]
-               for n in model.named_parameters()]
+    p_names = [n[0].split(".")[0] for n in model.named_parameters()]
     logging.warning(p_names)
 
     if tracker.out_path is not None:
@@ -106,16 +114,23 @@ def test_tracker_cuda():
 
             if tt not in ["Activation", "Gradient"]:
 
-                names = df.query(
-                    f'@df.metadata.tensor_type == "{tt}"\
-                    ').metadata.name.unique().tolist()  # type: ignore
+                names = (
+                    df.query(
+                        f'@df.metadata.tensor_type == "{tt}"\
+                    '
+                    )
+                    .metadata.name.unique()
+                    .tolist()
+                )  # type: ignore
 
                 assert set(names) == set(
                     p_names
                 ), f"{tt} tracked {len(set(names))} but it should \
                     have tracked {len(set(p_names))}"
     else:
-        assert False, "Test failed because the tracker \
+        assert (
+            False
+        ), "Test failed because the tracker \
             did not output a logframe"
 
     # clean up
@@ -123,6 +138,7 @@ def test_tracker_cuda():
     shutil.rmtree(p)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 def test_tracker_torch_compile():
 
     model = SimpleModel(input_size=INDIM).to("cuda")
@@ -130,8 +146,7 @@ def test_tracker_torch_compile():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)  # type: ignore
 
     model = torch.compile(model)  # type: ignore
-    p_names = [".".join(n[0].split(".")[:-1])
-               for n in model.named_parameters()]
+    p_names = [".".join(n[0].split(".")[:-1]) for n in model.named_parameters()]
     with track(
         module=model,  # type: ignore
         track_gradients=True,
@@ -159,16 +174,23 @@ def test_tracker_torch_compile():
 
             if tt not in ["Activation", "Gradient"]:
 
-                names = df.query(
-                    f'@df.metadata.tensor_type == "{tt}"\
-                        ').metadata.name.unique().tolist()  # type: ignore
+                names = (
+                    df.query(
+                        f'@df.metadata.tensor_type == "{tt}"\
+                        '
+                    )
+                    .metadata.name.unique()
+                    .tolist()
+                )  # type: ignore
 
                 assert set(names) == set(
                     p_names
                 ), f"{tt} tracked {len(set(names))} but it should \
                     have tracked {len(set(p_names))}"
     else:
-        assert False, "Test failed because the tracker did not \
+        assert (
+            False
+        ), "Test failed because the tracker did not \
             output a logframe"
 
     # clean up

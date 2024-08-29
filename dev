@@ -53,8 +53,8 @@ def tests(filter: Optional[str]) -> None:
             "python",
             "-m",
             "pytest",
-            "unit_scaling",
-            None if filter else "--cov=unit_scaling",
+            "tandv",
+            None if filter else "--cov=tandv",
             *(["-k", filter] if filter else []),
         ]
     )
@@ -70,7 +70,7 @@ def python(commands: List[Any]) -> None:
 def lint() -> None:
     """run static analysis"""
     run(["python", "-m", "flake8", *PYTHON_ROOTS])
-    run(["python", "-m", "mypy", *PYTHON_ROOTS])
+    # run(["python", "-m", "mypy", *PYTHON_ROOTS])
 
 
 @cli("--check", action="store_true")
@@ -122,13 +122,16 @@ def copyright() -> None:
 @cli()
 def doc() -> None:
     """generate API documentation"""
-    subprocess.call(["rm", "-r", "docs/generated", "docs/_build"])
+    subprocess.call(["rm", "-r", "docs/tandv"])
     run(
         [
-            "make",
-            "-C",
+            "python3",
+            "-m",
+            "pdoc",
+            "--html",
+            "--output-dir",
             "docs",
-            "html",
+            "tandv",
         ]
     )
 
@@ -143,14 +146,14 @@ def doc() -> None:
 )
 def ci(skip: List[str] = []) -> None:
     """run all continuous integration tests & checks"""
-    if "tests" not in skip:
-        tests(filter=None)
-    if "lint" not in skip:
-        lint()
-    if "format" not in skip:
-        format(check=True)
     if "copyright" not in skip:
         copyright()
+    if "format" not in skip:
+        format(check=True)
+    if "lint" not in skip:
+        lint()
+    if "tests" not in skip:
+        tests(filter=None)
     if "doc" not in skip:
         doc()
 

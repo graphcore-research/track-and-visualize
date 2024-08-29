@@ -86,9 +86,7 @@ class FacetGrid(Grid):
         else:
             hue_names = categorical_order(data[hue], hue_order)
 
-        colors = self._get_palette(data,
-                                   hue,
-                                   hue_order, palette)  # type: ignore
+        colors = self._get_palette(data, hue, hue_order, palette)  # type: ignore
 
         # Set up the lists of names for the row and column facet variables
         if row is None:
@@ -359,7 +357,9 @@ class FacetGrid(Grid):
 
             # Insert a label in the keyword arguments for the legend
             if self._hue_var is not None:
-                assert self.hue_names is not None, "hue_names property \
+                assert (
+                    self.hue_names is not None
+                ), "hue_names property \
                     cannot be None"
                 kwargs["label"] = utils.to_utf8(self.hue_names[hue_k])
 
@@ -433,7 +433,9 @@ class FacetGrid(Grid):
 
             # Insert a label in the keyword arguments for the legend
             if self._hue_var is not None:
-                assert self.hue_names is not None, "hue_names \
+                assert (
+                    self.hue_names is not None
+                ), "hue_names \
                     property cannot be None"
                 kwargs["label"] = self.hue_names[hue_k]
 
@@ -500,11 +502,7 @@ class FacetGrid(Grid):
         utils.despine(self._figure, **kwargs)
         return self
 
-    def set_axis_labels(self,
-                        x_var=None,
-                        y_var=None,
-                        clear_inner=True,
-                        **kwargs):
+    def set_axis_labels(self, x_var=None, y_var=None, clear_inner=True, **kwargs):
         """Set axis labels on the left column and bottom row of the grid."""
         if x_var is not None:
             self._x_var = x_var
@@ -543,8 +541,7 @@ class FacetGrid(Grid):
             curr_ticks = ax.get_xticks()
             ax.set_xticks(curr_ticks)
             if labels is None:
-                curr_labels = [label.get_text() for
-                               label in ax.get_xticklabels()]
+                curr_labels = [label.get_text() for label in ax.get_xticklabels()]
                 if step is not None:
                     xticks = ax.get_xticks()[::step]
                     curr_labels = curr_labels[::step]
@@ -560,18 +557,13 @@ class FacetGrid(Grid):
             curr_ticks = ax.get_yticks()
             ax.set_yticks(curr_ticks)
             if labels is None:
-                curr_labels = [label.get_text()
-                               for label in ax.get_yticklabels()]
+                curr_labels = [label.get_text() for label in ax.get_yticklabels()]
                 ax.set_yticklabels(curr_labels, **kwargs)
             else:
                 ax.set_yticklabels(labels, **kwargs)
         return self
 
-    def set_titles(self,
-                   template=None,
-                   row_template=None,
-                   col_template=None,
-                   **kwargs):
+    def set_titles(self, template=None, row_template=None, col_template=None, **kwargs):
         """Draw titles either above each facet or on the grid margins.
 
         Parameters
@@ -666,8 +658,7 @@ class FacetGrid(Grid):
                 self.axes.flat[i].set_title(title, **kwargs)
         return self
 
-    def refline(self, *, x=None, y=None, color=".5",
-                linestyle="--", **line_kws):
+    def refline(self, *, x=None, y=None, color=".5", linestyle="--", **line_kws):
         """Add a reference line(s) to each facet.
 
         Parameters
@@ -1015,13 +1006,11 @@ def relplot(
         keys = ["c", "color", "alpha", "m", "marker"]
         if kind == "scatter":
             legend_artist = utils._scatter_legend_artist  # type: ignore
-            keys += ["s", "facecolor", "fc",
-                     "edgecolor", "ec", "linewidth", "lw"]
+            keys += ["s", "facecolor", "fc", "edgecolor", "ec", "linewidth", "lw"]
         else:
             legend_artist = partial(
-                mpl.lines.Line2D,
-                xdata=[],
-                ydata=[])  # type: ignore
+                mpl.lines.Line2D, xdata=[], ydata=[]
+            )  # type: ignore
             keys += [
                 "markersize",
                 "ms",
@@ -1050,8 +1039,7 @@ def relplot(
 
     # Rename the columns of the FacetGrid's `data` attribute
     # to match the original column names
-    orig_cols = {f"_{k}": f"_{k}_"
-                 if v is None else v for k, v in variables.items()}
+    orig_cols = {f"_{k}": f"_{k}_" if v is None else v for k, v in variables.items()}
     grid_data = g.data.rename(columns=orig_cols)
     if data is not None and (x is not None or y is not None):
         if not isinstance(data, pd.DataFrame):

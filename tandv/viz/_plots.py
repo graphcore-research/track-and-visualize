@@ -1,10 +1,7 @@
 # Copyright (c) 2024 Graphcore Ltd. All rights reserved.
 import logging
 from functools import partial
-from typing import (
-    Any, Callable, Dict,
-    List, Literal, Pattern,
-    Tuple, Union)
+from typing import Any, Callable, Dict, List, Literal, Pattern, Tuple, Union
 
 import matplotlib
 import matplotlib.axes
@@ -50,9 +47,7 @@ def _getformatter(list) -> Callable:
 
 
 def _gen_facet_query(
-    layer: Union[List[str], str, Pattern],
-    tt: Union[TensorType, List, str, None],
-    df
+    layer: Union[List[str], str, Pattern], tt: Union[TensorType, List, str, None], df
 ) -> Tuple[Any, str]:
     """
     fn for generating df query for faceting across TensorType or Layername.
@@ -82,18 +77,20 @@ def _gen_facet_query(
     # logic for faceting by Tensor
     if type(tt) is list:
         # convert List[TT] to list string and format for query
-        tq = f" in {[t.name if type(t) != str else t for t in tt]}"
+        tq = f" in {[t.name if type(t) != str else t for t in tt]}"  # noqa: E721
         facet = _q.TTYPE
     elif tt is None:
         # Retrieve the set of unique TT's in DF and format query \
         # (this is rendudant)
-        _tq = [t.name if type(t) is not str else t
-               for t in df.metadata.tensor_type.unique()]
+        _tq = [
+            t.name if type(t) is not str else t
+            for t in df.metadata.tensor_type.unique()
+        ]
         tq = f" in {_tq}"
         facet = _q.TTYPE
     elif type(tt) is TensorType or type(tt) is str:
         tq = f' == \
-            "{tt.name if type(tt) == TensorType else tt}"'  # type: ignore
+            "{tt.name if type(tt) == TensorType else tt}"'  # noqa: E721
 
     query = f"@df.metadata.name{lq} & @df.metadata.tensor_type{tq}"
 
@@ -118,8 +115,7 @@ def _annotate_nf_details(
     offset = 0
     # will either be a list of strings or a np array
 
-    if logged_dtypes and len(logged_dtypes) > 1 \
-            and type(fp_dtype) is str:
+    if logged_dtypes and len(logged_dtypes) > 1 and type(fp_dtype) is str:
         offset = logged_dtypes.index(fp_dtype)
 
     # if single value is passed in, wrap in list so branch in logic
@@ -128,8 +124,9 @@ def _annotate_nf_details(
 
     # just a quick soln for having different annotation colours
     if color_map is None:
-        color_map = plt.colormaps.get_cmap("Set1").resampled(
-            len(fp_dtype) + offset).colors  # type: ignore
+        color_map = (
+            plt.colormaps.get_cmap("Set1").resampled(len(fp_dtype) + offset).colors
+        )  # type: ignore
 
     # need some logic for changing colour for different ftypes..
     for fpdt, color in zip(fp_dtype, color_map[offset:]):  # type: ignore
@@ -142,7 +139,9 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(fp_info.maxexp)),
                     "-",
-                    f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
+                    f"{str(fp_info.dtype).upper()} - "
+                    f"Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) "
+                    f"| {fp_info.max} (rv)",
                 )
             )
         else:
@@ -151,7 +150,9 @@ def _annotate_nf_details(
                     (
                         fp_info.max,
                         "-",
-                        f"{str(fp_info.dtype).upper()} - Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) | {fp_info.max} (rv)",
+                        f"{str(fp_info.dtype).upper()} - "
+                        f"Max: {f'$2^{{{str(fp_info.maxexp)}}}$'} (exp) "
+                        f"| {fp_info.max} (rv)",
                     )
                 )
             else:
@@ -160,23 +161,25 @@ def _annotate_nf_details(
                         upper bounds of the histogram so is set to +infinity"
                 )
 
-        if type(x_values) is list and str(
-                np.log2(fp_info.smallest_normal)) in x_values:
+        if type(x_values) is list and str(np.log2(fp_info.smallest_normal)) in x_values:
             line_styles.append(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_normal))),
                     "--",
-                    f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest Normal: "
+                    f"{f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) "
+                    f"| {fp_info.smallest_normal} (rv)",
                 )
             )
         else:
-            if type(x_values[0]) is not str \
-                    and fp_info.smallest_normal > x_values[0]:
+            if type(x_values[0]) is not str and fp_info.smallest_normal > x_values[0]:
                 line_styles.append(
                     (
                         fp_info.smallest_normal,
                         "--",
-                        f"{str(fp_info.dtype).upper()} - Smallest Normal: {f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) | {fp_info.smallest_normal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest Normal: "
+                        f"{f'$2^{{{str(np.log2(fp_info.smallest_normal))}}}$'} (exp) "
+                        f"| {fp_info.smallest_normal} (rv)",
                     )
                 )
             else:
@@ -193,17 +196,23 @@ def _annotate_nf_details(
                 (
                     x_values.index(str(np.log2(fp_info.smallest_subnormal))),
                     ":",
-                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
+                    f"{str(fp_info.dtype).upper()} - Smallest SubNormal: "
+                    f"{f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) "
+                    f"| {fp_info.smallest_subnormal} (rv)",
                 )
             )
         else:
-            if type(x_values[0]) is not str and \
-                    fp_info.smallest_subnormal > x_values[0]:
+            if (
+                type(x_values[0]) is not str
+                and fp_info.smallest_subnormal > x_values[0]
+            ):
                 line_styles.append(
                     (
                         fp_info.smallest_subnormal,
                         ":",
-                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal: {f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp) | {fp_info.smallest_subnormal} (rv)",
+                        f"{str(fp_info.dtype).upper()} - Smallest SubNormal: "
+                        f"{f'$2^{{{str(np.log2(fp_info.smallest_subnormal))}}}$'} (exp)"
+                        f" | {fp_info.smallest_subnormal} (rv)",
                     )
                 )
             else:
@@ -253,8 +262,7 @@ def _generate_underlying_data(
     # mean (2^n + 2^n/2 and std 2^n/4)
     empty = []
     for e_, h_ in zip(act, h):
-        empty.append(np.random.normal(
-            e_ + e_ / 2, scale=e_ / 4, size=int(n * h_)))
+        empty.append(np.random.normal(e_ + e_ / 2, scale=e_ / 4, size=int(n * h_)))
 
     return np.concatenate(empty), act
 
@@ -289,10 +297,7 @@ class _BaseFacetPlotter:
 
 class _GlobalHeatmapPlotter(_BasePlotter):
     def __init__(
-        self, x: Tuple[Any, Any],
-        y: Tuple[Any, Any],
-        scalar_metric: str,
-        **kwargs
+        self, x: Tuple[Any, Any], y: Tuple[Any, Any], scalar_metric: str, **kwargs
     ) -> None:
         self.x = x
         self.y = y
@@ -304,8 +309,9 @@ class _GlobalHeatmapPlotter(_BasePlotter):
     ) -> pd.DataFrame:
         return df.query(
             f'@df.metadata.tensor_type == \
-                "{tt.name if type(tt) == TensorType else tt }" \
-                    & @df.metadata.step % {inc} == 0')  # type: ignore
+                "{tt.name if type(tt) == TensorType else tt}" \
+                    & @df.metadata.step % {inc} == 0'  # noqa: E721
+        )  # type: ignore
 
     def _plot_single(self, df: pd.DataFrame, ax: matplotlib.axes.Axes):
 
@@ -314,8 +320,7 @@ class _GlobalHeatmapPlotter(_BasePlotter):
 
         df = _flatten_multi_index(df=df)
 
-        dfp = df.pivot(index=self.y[1], columns=self.x[1],
-                       values=self.scalar_metric)
+        dfp = df.pivot(index=self.y[1], columns=self.x[1], values=self.scalar_metric)
 
         with plt.ioff():
 
@@ -376,8 +381,10 @@ def scalar_global_heatmap(
                 scalar_metric, Please choose a single value for one"
         )
     if inc < 1:
-        raise ValueError("inc must be a positive \
-            integer value greater than zero")
+        raise ValueError(
+            "inc must be a positive \
+            integer value greater than zero"
+        )
     # plt.switch_backend('inline')
     _validate_df_hash(df)
 
@@ -388,16 +395,16 @@ def scalar_global_heatmap(
         raise NotImplementedError("Faceting not yet implemented!")
 
     # Create Plotter
-    plotter = _GlobalHeatmapPlotter(x=x, y=y,
-                                    scalar_metric=scalar_metric,
-                                    **kwargs)
+    plotter = _GlobalHeatmapPlotter(x=x, y=y, scalar_metric=scalar_metric, **kwargs)
 
     # filter relevent rows
     df = plotter._query(df, tt, inc)
 
     if df.empty:
-        raise QueryException(f"The combination of {tt}, \
-                             {inc} returned no results")
+        raise QueryException(
+            f"The combination of {tt}, \
+                             {inc} returned no results"
+        )
 
     # create figure
     fig, ax = plt.subplots(figsize=figsize)
@@ -424,8 +431,7 @@ class _ScalarLinePlotter(_BaseFacetPlotter):
         self.x = x
         self.col_wrap = col_wrap
         self.scalar_metric = (
-            [scalar_metric] if
-            type(scalar_metric) is str else scalar_metric
+            [scalar_metric] if type(scalar_metric) is str else scalar_metric
         )
         self.facet_kws = facet_kws
 
@@ -486,8 +492,7 @@ class _ScalarLinePlotter(_BaseFacetPlotter):
             facet_kws=(
                 {
                     "sharey": False,
-                    **{k: v for k, v in
-                       self.facet_kws.items() if k != "sharey"},
+                    **{k: v for k, v in self.facet_kws.items() if k != "sharey"},
                 }
                 if self.facet == _q.TTYPE
                 else self.facet_kws
@@ -572,8 +577,10 @@ def scalar_line(
 
     df = plotter._query(df=df, layer=layer, tt=tt)
     if df.empty:
-        raise QueryException(f"The combination of {layer}, {tt} \
-                             returned no results")
+        raise QueryException(
+            f"The combination of {layer}, {tt} \
+                             returned no results"
+        )
 
     if plotter.facet:
         fig = plt.figure(figsize=figsize)
@@ -624,8 +631,7 @@ class _ExpHistPlotter(_BaseFacetPlotter):
         # change this if allowing for faceting on steps)
         df = df.query(query).pipe(lambda x: x[x.metadata.step == step])
         # set logged dtypes
-        self.logged_dtypes = \
-            df.metadata.dtype.unique().tolist()  # type: ignore
+        self.logged_dtypes = df.metadata.dtype.unique().tolist()  # type: ignore
 
         return df
 
@@ -633,8 +639,7 @@ class _ExpHistPlotter(_BaseFacetPlotter):
         # normalize, convert to long format & sort ascending
         fp = False
         _df = (
-            pd.melt(df_.exponent_counts.div(
-                df_.exponent_counts.sum(axis=1), axis=0))
+            pd.melt(df_.exponent_counts.div(df_.exponent_counts.sum(axis=1), axis=0))
             .rename(columns={"variable": "Exponent"})
             .sort_values("Exponent")
         )
@@ -681,15 +686,13 @@ class _ExpHistPlotter(_BaseFacetPlotter):
             ax.xaxis.set_major_formatter(
                 matplotlib.ticker.FuncFormatter(_getformatter(act))
             )  # custom format for 2^n & inf
-            ax.yaxis.set_major_formatter(
-                matplotlib.ticker.FormatStrFormatter("%.2f"))
+            ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
             ax.set_xbound(lower=act[0], upper=act[-1])
         else:
             ax.xaxis.set_major_formatter(
                 matplotlib.ticker.FuncFormatter(_getformatter(x))
             )
-            ax.yaxis.set_major_formatter(
-                matplotlib.ticker.FormatStrFormatter("%.2f"))
+            ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
         if self.xtick_labelsize:
             ax.xaxis.set_tick_params(
                 labelsize=self.xtick_labelsize, rotation=self.xtick_rotation
@@ -721,8 +724,7 @@ class _ExpHistPlotter(_BaseFacetPlotter):
                 ax.legend(**self.legend_kws)
 
     def _plot_facet(
-        self, df: pd.DataFrame,
-        figure: Union[matplotlib.figure.Figure, None] = None
+        self, df: pd.DataFrame, figure: Union[matplotlib.figure.Figure, None] = None
     ):
 
         # Internal Functions ...
@@ -750,8 +752,7 @@ class _ExpHistPlotter(_BaseFacetPlotter):
                 list(self.all_leg_handles.values()),
                 list(self.all_leg_handles.keys()),
                 loc=self.legend_kws.pop("loc", "lower center"),
-                bbox_to_anchor=self.legend_kws.pop(
-                    "bbox_to_anchor", (0.9, 0.9)),
+                bbox_to_anchor=self.legend_kws.pop("bbox_to_anchor", (0.9, 0.9)),
                 **self.legend_kws,
             )
 
@@ -838,8 +839,9 @@ def exp_hist(
     """
 
     # plt.switch_backend('inline')
-    if (type(layer) is list or isinstance(layer, Pattern)) and \
-            (type(tt) is list or tt is None):
+    if (type(layer) is list or isinstance(layer, Pattern)) and (
+        type(tt) is list or tt is None
+    ):
         raise FacetException(
             "Cannot Facet or both Tensor Type and layer, \
                 one must be a single value"
@@ -897,7 +899,6 @@ def exp_hist(
         # plot figure
         plotter._plot_single(df_=df_, ax=ax)
         # Overall plot title ...
-        fig.suptitle(fig_title) if fig_title else fig.suptitle(
-            f'Name = "{layer}"')
+        fig.suptitle(fig_title) if fig_title else fig.suptitle(f'Name = "{layer}"')
 
         return fig

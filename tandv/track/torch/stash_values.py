@@ -7,9 +7,7 @@ if _config._TORCH_EXTRA:
     import torch
 
 
-def exp_histogram(tensor: torch.Tensor,
-                  min_exp=-16,
-                  max_exp=16) -> Dict[str, List]:
+def exp_histogram(tensor: torch.Tensor, min_exp=-16, max_exp=16) -> Dict[str, List]:
     """
     Gets the exponent histogram for the tensor, any thing over/under \
         max_exp/min_exp will be set to +/-inf
@@ -32,8 +30,7 @@ def exp_histogram(tensor: torch.Tensor,
     e = torch.where(e < min_exp, (min_exp - 1) * torch.ones_like(e), e)
     e = torch.where(e > max_exp, (max_exp + 1) * torch.ones_like(e), e)
 
-    bins = torch.Tensor([i for i in range(
-        min_exp - 1, max_exp + 2)]).to(e.dtype)
+    bins = torch.Tensor([i for i in range(min_exp - 1, max_exp + 2)]).to(e.dtype)
     hist = torch.histc(
         e.to(tensor.dtype),
         bins=(max_exp + 2) - (min_exp - 1),

@@ -3,8 +3,15 @@
 ## Installation
 ```
 pip install git+https://github.com/graphcore-research/numerics-vis.git
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt  # Along with requirements-[torch|jax].txt if desired
 ```
 
+For those wishing to use the library's torch or jax tensor-tracking functionality,
+it is recommended to pip install `requirements-torch.txt` or `requirements-jax.txt`
+instead. Those wishing to develop on top of the library are advised to use
+`requirements-dev.txt`.
 
 ## Usage
 

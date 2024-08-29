@@ -18,13 +18,8 @@ from ipywidgets import widgets
 from ..track.common import TrainingStats
 from ..track.common._types import TT as TensorType
 from ._crosshair import SnappingCrossHair
-from ._plots import (_ExpHistPlotter,
-                     _GlobalHeatmapPlotter,
-                     _ScalarLinePlotter)
-
-from ._toolbars import (_ExponentHistogramToolbar,
-                        _ScalarLineToolbar,
-                        get_toolbar)
+from ._plots import _ExpHistPlotter, _GlobalHeatmapPlotter, _ScalarLinePlotter
+from ._toolbars import _ExponentHistogramToolbar, _ScalarLineToolbar, get_toolbar
 from ._widget_holder import WidgetHolder
 
 
@@ -77,17 +72,13 @@ def _exp_hist_redraw(
         kind=kind,
         sp_kws=kwargs.pop(
             "sp_kws",
-            dict(n=10000,
-                 log_scale=2,
-                 bw_adjust=4,
-                 fill=True) if kind == "kde" else {},
+            dict(n=10000, log_scale=2, bw_adjust=4, fill=True) if kind == "kde" else {},
         ),
         xtick_labelsize=kwargs.pop("xtick_labelsize", 6),
         xtick_rotation=kwargs.pop("xtick_rotation", 45),
         dtype_annotation=kwargs.pop("dtype_annotation", True),
         dtype_info=kwargs.pop("dtype_info", (True, True, True)),
-        legend_kws=kwargs.pop("legend_kws",
-                              dict(fontsize=10, loc="upper right")),
+        legend_kws=kwargs.pop("legend_kws", dict(fontsize=10, loc="upper right")),
         **kwargs,
     )
 
@@ -104,8 +95,10 @@ def _exp_hist_redraw(
             # X-axis isn't functioning correctly
             fig.suptitle(f"Layer: {layer}, Step: {step}, TT: {tt}")
     else:
-        warnings.warn("The input query return no results, \
-                      displaying an empty figure")
+        warnings.warn(
+            "The input query return no results, \
+                      displaying an empty figure"
+        )
     fig.canvas.draw_idle()
 
 
@@ -142,8 +135,10 @@ def _global_scalar_redraw(
 
         fig.suptitle(scalar_metric.upper())
     else:
-        warnings.warn("The input query return no results, \
-                      displaying an empty figure")
+        warnings.warn(
+            "The input query return no results, \
+                      displaying an empty figure"
+        )
     fig.canvas.draw_idle()
 
 
@@ -188,8 +183,10 @@ def _scalar_line_redraw(
 
                 fig.suptitle(f"Layer: {layer}, TT: {tt}")
     else:
-        warnings.warn("The input query return no results, \
-                      displaying an empty figure")
+        warnings.warn(
+            "The input query return no results, \
+                      displaying an empty figure"
+        )
 
     if not isinstance(ch_callback, NoneType):
         ch_callback(other_ax=fig.axes)
@@ -265,9 +262,9 @@ def interactive(
     STEP = kwargs.get("step", None)
     STEP
 
-    def tstats_onpress(event: matplotlib.backend_bases.MouseEvent,
-                       step: Callable,
-                       button_press: bool) -> None:  # type: ignore
+    def tstats_onpress(
+        event: matplotlib.backend_bases.MouseEvent, step: Callable, button_press: bool
+    ) -> None:  # type: ignore
         """
             This is the event handling function for button press events \
                 on the training steps figure.
@@ -298,10 +295,7 @@ def interactive(
         if not isinstance(WH, NoneType) and button_press:
             WH._redraw(step=step())
 
-    def set_up_crosshair(training_ax,
-                         other_ax,
-                         lines,
-                         button_press: bool = False):
+    def set_up_crosshair(training_ax, other_ax, lines, button_press: bool = False):
         """
         This closure, initialises a new SnappingCrossHair state \
             management object (in the outer function scope) and \
@@ -349,8 +343,7 @@ def interactive(
     # Event Handler(s) for ScalarGlobalHeatmap
     ##########################################################################
     # Onclick
-    def sgh_onclick(
-            event: matplotlib.backend_bases.MouseEvent):  # type: ignore
+    def sgh_onclick(event: matplotlib.backend_bases.MouseEvent):  # type: ignore
         """
             The event handler for the scalar global heatmap \
                 'button_press_event'. Facilitates the interaction \
@@ -374,8 +367,7 @@ def interactive(
         # (this will form the query)
         if event.button == 1 and STACK_NUM == 0:
             STACK_NUM = 1
-            tf, ind = event.canvas.figure.axes[0].collections[0].contains(
-                event)
+            tf, ind = event.canvas.figure.axes[0].collections[0].contains(event)
             if tf:
 
                 # from the current fig get the x,y labels so that clicking can
@@ -430,10 +422,7 @@ def interactive(
                 drf, **drargs
             )  # need to include the kwargs in here ..
             WH.rebuild(
-                **get_toolbar(
-                    df=kwargs["df"],
-                    scalar_metric=SCALAR_METRIC,
-                    tt=TT)
+                **get_toolbar(df=kwargs["df"], scalar_metric=SCALAR_METRIC, tt=TT)
             )
 
     ##########################################################################
@@ -455,9 +444,8 @@ def interactive(
     if not isinstance(train_stats, NoneType) and TSTATS_ENABLED:
         # need to have something for handling dictionaries
         tstats_dict: Dict = asdict(
-            train_stats,
-            dict_factory=lambda x:
-            {k: v for (k, v) in x if v is not None})  # type: ignore
+            train_stats, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}
+        )  # type: ignore
         tsteps = tstats_dict.pop("steps", None)
         assert (
             tsteps is not None
@@ -472,10 +460,7 @@ def interactive(
         with plt.ioff():
             training_fig, training_ax = plt.subplots()
             for k, v in tstats_dict.items():
-                (lines[k],) = training_ax.plot(tsteps,
-                                               v,
-                                               picker=True,
-                                               pickradius=5)
+                (lines[k],) = training_ax.plot(tsteps, v, picker=True, pickradius=5)
 
         training_fig.canvas.toolbar_visible = False  # type: ignore
         training_fig.canvas.figure_title = False  # type: ignore
@@ -518,16 +503,11 @@ def interactive(
         WH = WidgetHolder(
             parent=TOOLBAR,
             **get_toolbar(
-                df=kwargs["df"],
-                scalar_metric=kwargs["scalar_metric"],
-                tt=kwargs["tt"]
+                df=kwargs["df"], scalar_metric=kwargs["scalar_metric"], tt=kwargs["tt"]
             ),
         )
         WH.observe()
-        WH.set_current_redraw_function(
-            _global_scalar_redraw,
-            fig=fig.figure,
-            **kwargs)
+        WH.set_current_redraw_function(_global_scalar_redraw, fig=fig.figure, **kwargs)
         WH.display()
     # EXPONENT HISTOGRAM ######
     elif f.__name__ == "exp_hist":
@@ -548,11 +528,9 @@ def interactive(
         # For using cross hairs with training stats
         if not isinstance(train_stats, NoneType) and TSTATS_ENABLED:
             set_up_crosshair(training_ax, None, lines, button_press=True)
-            WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure,
-                                           **kwargs)
+            WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure, **kwargs)
         else:
-            WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure,
-                                           **kwargs)
+            WH.set_current_redraw_function(_exp_hist_redraw, fig=fig.figure, **kwargs)
         WH.display()
 
     # SCALAR GLOBAL LINE ######

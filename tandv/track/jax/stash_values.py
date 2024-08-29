@@ -10,14 +10,12 @@ def _concretize_as_list(value: Dict[str, jax.Array]) -> Dict[str, List]:
     return {k: v.tolist() for k, v in value.items()}
 
 
-def _concretize_as_scalar(value: Dict[str, jax.Array]) -> Dict[
-        str, Union[int, float]]:
+def _concretize_as_scalar(value: Dict[str, jax.Array]) -> Dict[str, Union[int, float]]:
     value = jax.device_get(value)
     return {k: v.item() for k, v in value.items()}
 
 
-def exp_histogram(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[
-        str, jax.Array]:
+def exp_histogram(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[str, jax.Array]:
     """
     Gets the histogram of the exponents for the values in the jax.Array, \
         any thing over/under max_exp/min_exp will be set to +/-inf
@@ -76,10 +74,12 @@ def _stash_scalar_stats(tensor: jax.Array) -> Dict[str, jax.Array]:
         "max_abs": abs_t.max(),
         "min_abs": abs_t.min(),
         "rm2": rm2,
-        "rm4": jnp.pow(jnp.pow(tensor.__div__(rm2),
-                               4).mean(), 1 / 4).__mul__(rm2),  # type: ignore
-        "rm8": jnp.pow(jnp.pow(tensor.__div__(rm2),
-                               8).mean(), 1 / 8).__mul__(rm2),  # type: ignore
+        "rm4": jnp.pow(jnp.pow(tensor.__div__(rm2), 4).mean(), 1 / 4).__mul__(
+            rm2
+        ),  # type: ignore
+        "rm8": jnp.pow(jnp.pow(tensor.__div__(rm2), 8).mean(), 1 / 8).__mul__(
+            rm2
+        ),  # type: ignore
     }
 
 
@@ -103,8 +103,7 @@ def stash_hist(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict:
         ```
 
     """
-    return {"exp_hist": _concretize_as_list(exp_histogram(
-        tensor, min_exp, max_exp))}
+    return {"exp_hist": _concretize_as_list(exp_histogram(tensor, min_exp, max_exp))}
 
 
 def stash_all_stats_and_hist(tensor: jax.Array) -> Dict[str, Dict]:

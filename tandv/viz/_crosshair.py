@@ -21,22 +21,21 @@ class SnappingCrossHair:
 
     """
 
-    def __init__(self, ax: matplotlib.axes.Axes,
-                 other_ax: List[matplotlib.axes.Axes],
-                 lines: Dict[str, matplotlib.lines.Line2D],
-                 sensitivity: int = 10):  # type: ignore
+    def __init__(
+        self,
+        ax: matplotlib.axes.Axes,
+        other_ax: List[matplotlib.axes.Axes],
+        lines: Dict[str, matplotlib.lines.Line2D],
+        sensitivity: int = 10,
+    ):  # type: ignore
         self.ax = ax
         self.other_ax = other_ax
-        self.vertical_line = ax.axvline(color="k",
-                                        lw=0.8,
-                                        ls="--")
+        self.vertical_line = ax.axvline(color="k", lw=0.8, ls="--")
         self._creating_background = False
         if not isinstance(other_ax, NoneType):
             self.other_vlines = []
             for oax in self.other_ax:
-                self.other_vlines.append(oax.axvline(color="k",
-                                                     lw=0.8,
-                                                     ls="--"))
+                self.other_vlines.append(oax.axvline(color="k", lw=0.8, ls="--"))
         self.lines_data = dict()
 
         for k, v in lines.items():
@@ -71,9 +70,7 @@ class SnappingCrossHair:
             return need_redraw or others_need_redraw
         return need_redraw
 
-    def on_mouse_move(self,
-                      event:
-                      matplotlib.backend_bases.MouseEvent):  # type: ignore
+    def on_mouse_move(self, event: matplotlib.backend_bases.MouseEvent):  # type: ignore
         ctime = time.time()
         if not (event.inaxes is self.ax):
             self._last_index = None
@@ -105,12 +102,10 @@ class SnappingCrossHair:
 
             def _format_text(ind: int) -> str:
                 return "\n".join(
-                    [f'{k}={v["y"][ind]:1.2f}'
-                     for k, v in self.lines_data.items()]
+                    [f'{k}={v["y"][ind]:1.2f}' for k, v in self.lines_data.items()]
                 )
 
-            self.text.set_text(
-                f"step={int(x)}\n{_format_text(self._last_index)}")
+            self.text.set_text(f"step={int(x)}\n{_format_text(self._last_index)}")
             self.ax.figure.canvas.draw()
             if not isinstance(self.other_ax, NoneType):
                 [_ax.figure.canvas.draw() for _ax in self.other_ax[:1]]

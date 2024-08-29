@@ -8,6 +8,7 @@ import jax.numpy as jnp
 import optax
 from flax import linen as nn
 from jax import tree_util
+
 from ..track.common import read_pickle
 from ..track.jax import track
 
@@ -77,11 +78,7 @@ def test_flax():
     model_state = model.init(key, x)
 
     flat, _ = tree_util.tree_flatten_with_path(model_state)
-    p_names = list(
-        set(
-            [".".join([key.key for key in fl[0][1:-1]]) for fl in flat]
-            )
-        )
+    p_names = list(set([".".join([key.key for key in fl[0][1:-1]]) for fl in flat]))
 
     optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
     opt_state = optimizer.init(model_state)
@@ -98,9 +95,7 @@ def test_flax():
         return model_state, opt_state, grads
 
     with track(
-        track_gradients=True,
-        model_state=model_state,
-        optimizer_state=opt_state
+        track_gradients=True, model_state=model_state, optimizer_state=opt_state
     ) as tracker:
         for i in range(10):
             model_state, opt_state, grads = tracker.intercept(
@@ -120,9 +115,11 @@ def test_flax():
 
             if tt not in ["Activation", "Gradient"]:
 
-                names = df.query(
-                    f'@df.metadata.tensor_type == "{tt}"'
-                    ).metadata.name.unique().tolist()  # type: ignore
+                names = (
+                    df.query(f'@df.metadata.tensor_type == "{tt}"')
+                    .metadata.name.unique()
+                    .tolist()
+                )  # type: ignore
                 logging.warning(names)
 
                 assert set(names) == set(
@@ -130,7 +127,9 @@ def test_flax():
                 ), f"{tt} tracked {len(set(names))} but it should \
                     have tracked {len(set(p_names))}"
     else:
-        assert False, "Test failed because the tracker \
+        assert (
+            False
+        ), "Test failed because the tracker \
             id not output a logframe"
 
     # clean up
@@ -148,8 +147,7 @@ def test_flax_compact():
     model_state = model.init(key, x)
 
     flat, _ = tree_util.tree_flatten_with_path(model_state)
-    p_names = list(set([".".join(
-        [key.key for key in fl[0][1:-1]]) for fl in flat]))
+    p_names = list(set([".".join([key.key for key in fl[0][1:-1]]) for fl in flat]))
 
     optimizer = optax.adam(learning_rate=step_size, eps=2**-16)
     opt_state = optimizer.init(model_state)
@@ -166,9 +164,7 @@ def test_flax_compact():
         return model_state, opt_state, grads
 
     with track(
-        track_gradients=True,
-        model_state=model_state,
-        optimizer_state=opt_state
+        track_gradients=True, model_state=model_state, optimizer_state=opt_state
     ) as tracker:
         for i in range(10):
             model_state, opt_state, grads = tracker.intercept(
@@ -188,9 +184,14 @@ def test_flax_compact():
 
             if tt not in ["Activation", "Gradient"]:
 
-                names = df.query(
-                    f'@df.metadata.tensor_type == "{tt}"\
-                        ').metadata.name.unique().tolist()  # type: ignore
+                names = (
+                    df.query(
+                        f'@df.metadata.tensor_type == "{tt}"\
+                        '
+                    )
+                    .metadata.name.unique()
+                    .tolist()
+                )  # type: ignore
                 logging.warning(names)
 
                 assert set(names) == set(
@@ -198,7 +199,9 @@ def test_flax_compact():
                 ), f"{tt} tracked {len(set(names))} but it should have \
                     tracked {len(set(p_names))}"
     else:
-        assert False, "Test failed because the tracker did \
+        assert (
+            False
+        ), "Test failed because the tracker did \
             not output a logframe"
 
     # clean up
