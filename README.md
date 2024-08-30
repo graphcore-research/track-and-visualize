@@ -16,6 +16,12 @@ instead. Those wishing to develop on top of the library are advised to use
 ## Usage
 
 ### Track
+The first step in diagnosing an issue is extracting the pertitent data (which you can subsequently visualize). 
+
+This is faciliated through the `tandv.track` module which has an adapter for working with `torch.nn` modules and `flax.linen` modules (see below). 
+
+The default statistics which are captured, are those which are most compatible with the `viz` functions (however the library supports arbitrary stash value functions as long as they conform to the schema below). You can also choose what to types of tensors to track (Activations, Weights, Gradients and Optimizer State) for what modules (via regular expressions).
+
 #### torch
 Example of the use `tandv.track` in a `torch` training loop.
 ```python
@@ -28,10 +34,9 @@ with track(module=model,...) as tracker:
         ...
         loss.backward()
         optimizer.step()
-        # always call tracker.step() after the optimizer update step
-        tracker.step()
+        
+        tracker.step() # always call tracker.step() after the optimizer update step
 ```
-
 
 #### jax (flax)
 Example of the use `tandv.track` in a `jax/flax` training loop.
