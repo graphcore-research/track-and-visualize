@@ -1,4 +1,14 @@
 # Track & Visualize
+![Cross Reference Training Stats](/assets/tstats_eh.gif)
+
+- [x] **See what's going on in your model during training.**
+- [x] **Track numerics statistics on: Activations, Gradients, Weights & Optimizer State**
+- [x] **Plotting functions to visualize the Numerical stats in a meaningful way**
+- [x] **Interactive visualization for easy exploration**
+- [x] **Works out of the box, but designed to be flexible**
+
+
+
 
 ## Installation
 ```
@@ -14,7 +24,7 @@ instead. Those wishing to develop on top of the library are advised to use
 `requirements-dev.txt`.
 
 ## Usage
-
+See `example-notebooks` folder quickstart example to tracking with `torch`, `jax` and creating interactive visualizations.
 ### Track
 The first step in diagnosing an issue is extracting the pertitent data (which you can subsequently visualize). 
 
@@ -90,6 +100,8 @@ fig = viz.exp_hist(
 #### Interactive Vizualisation
 Interactive versions of each plot can be achieved by passing the viz function and the relevent kwargs to the interactive function.
 
+Enabling easy data exploration to help diagnose issues.
+
 ```python
 # Pass the plotting function into the interactive function with the required kwargs (for the plotting function) along with any others you need to create the interactive plot.
 viz.interactive(
@@ -104,6 +116,9 @@ viz.interactive(
 ![Interactive Scalar Line](/assets/scalar_line.gif)
 
 ```python
+# Zoom in from the global view of your networks training run to see the
+# exponent histogram for a specific layer at a training specific training
+# step. Simply click on the patch of interest on the heatmap.
 viz.interactive(
     f= viz.scalar_global_heatmap,
     df=df,
@@ -113,8 +128,8 @@ viz.interactive(
     inc=50
 )
 ```
-![Scalar Global Heatmap](/assets/global_scalar_heatmap.gif)
 
+![Scalar Global Heatmap](/assets/global_scalar_heatmap.gif)
 ```python
 viz.interactive(
     f=viz.exp_hist,
@@ -129,10 +144,40 @@ viz.interactive(
 
 ![Exponent Histogram](/assets/exponent_hist.gif)
 
-
 #### Cross Referencing with Training Stats
-...
+You can cross reference your loss curves (or other trainings stats) with the numerics data to understand what is happening numerically and the impact it may be having on training dynamics (i.e. why the model diverged, etc..)
 
+```python
+# Adds a vertical cross hair across all line plots
+interactive(
+    scalar_line,
+    train_stats=tstats, # pass training stats into interactive function
+    df=lf,
+    layer=[n for n in lf.metadata.name.unique().tolist() if 'layers.3.attention.w' in n],
+    tt='Gradient',
+    scalar_metric=['std','rm2'],
+    col_wrap = 3
+)
+```
+
+![Scalar Line with Training Stats](/assets/tstats_sl.gif)
+
+
+```python
+# Query training step using the loss curve(s)
+interactive(exp_hist,
+    train_stats=tstats,
+    df=lf,
+    layer=[n for n in lf.metadata.name.unique().tolist() if 'layers.5.feed_forward.w' in n],
+    tt = 'Activation',
+    step = 0,
+    dtype_annotation = 'float8_e4m3fn',
+    col_wrap = 3
+)
+
+```
+
+![Cross Reference Training Stats](/assets/tstats_eh.gif)
 
 ### Required Log Schema
 
