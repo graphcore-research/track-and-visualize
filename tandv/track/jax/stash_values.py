@@ -106,7 +106,7 @@ def stash_hist(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict:
     return {"exp_hist": _concretize_as_list(exp_histogram(tensor, min_exp, max_exp))}
 
 
-def stash_all_stats_and_hist(tensor: jax.Array) -> Dict[str, Dict]:
+def stash_all_stats_and_hist(tensor: jax.Array, min_exp=-16, max_exp=16) -> Dict[str, Dict]:
     """
     The default stash value function, and the one which is most compatible \
         with the visualisation library.
@@ -124,7 +124,7 @@ def stash_all_stats_and_hist(tensor: jax.Array) -> Dict[str, Dict]:
     """
     return {
         "scalar_stats": stash_scalar_stats(tensor=tensor),
-        "exp_hist": _concretize_as_list(exp_histogram(tensor=tensor)),
+        "exp_hist": _concretize_as_list(exp_histogram(tensor=tensor, min_exp=min_exp, max_exp=max_exp)),
     }
 
 

@@ -242,8 +242,7 @@ class JaxTracker(BaseTracker):
                                     Event(
                                         ".".join([pk.key for pk in path[1:-1]]),
                                         None,
-                                        f"Optimiser_State\
-                                            .{statefield}",  # type: ignore
+                                        f"Optimiser_State.{statefield}",  # type: ignore
                                         value,
                                         (),
                                         {},
